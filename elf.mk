@@ -5,7 +5,8 @@ ASFLAGS ?= --defsym .text=0x80400000
 
 include $(PWD)/config.mk
 
-LINKSCRIPTS := -T$(PWD)/include/n64/n64.ld \
+LINKSCRIPTS := -T$(PWD)/.build/memory.ld \
+	-T$(PWD)/include/n64/n64.ld \
 	-T$(PWD)/include/$(GAME)/$(GAME)-$(VERSION).ld
 
 SYMFILE := $(BUILDDIR)/symbols.sym

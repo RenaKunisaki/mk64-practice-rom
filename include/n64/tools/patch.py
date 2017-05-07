@@ -420,8 +420,8 @@ def getArgs():
         epilog="This script modifies the given ROM file, so make a backup. "
             "It does NOT correct the ROM header CRC; use crc.py for that.")
     A = parser.add_argument
-    A('rom', type=argparse.FileType('r+b'), help="ROM file to patch.")
-    A('patch', type=argparse.FileType('rb'), help="ELF file to patch into ROM.")
+    A('--get-free', default=False, action='store_true',
+        help="Print addresses of next free space and exit.")
     A('--no-load', default=False, action='store_true',
         help="Don't add to patch table. Used for patches that don't need to be "
         "copied into memory at startup.")
@@ -429,11 +429,22 @@ def getArgs():
         "If specified, loader will call this offset in the patch.")
     A('--pad', default=None, type=readSize, metavar='SIZE',
         help="Pad ROM to this size. eg '--pad 16M'")
+    A('rom', type=argparse.FileType('r+b'), nargs='?',
+        help="ROM file to patch.")
+    A('patch', nargs='?', type=argparse.FileType('rb'),
+        help="ELF file to patch into ROM.")
+
     return parser.parse_args()
 
 
 def main():
     args = getArgs()
+
+    if args.get_free:
+        rom = ROM(args.rom)
+        _, romAddr, ramAddr = rom.getFreePatchSlot()
+        print("0x%06X 0x%08X" % (romAddr & 0x0FFFFFFF, ramAddr))
+        return 0
 
     elf = ELF(args.patch)
     elf.printProgramHeaders()
