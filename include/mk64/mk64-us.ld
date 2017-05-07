@@ -18,8 +18,8 @@ PHDRS
      * it SHOULD be PT_LOAD (which might also kill the "not in segment"
      * warning) but that doesn't work.
      */
-    bootstrap 0x7511   AT(BOOTPATCH_ROM_ADDR) ;
-    boot      0x7511   AT(BOOTSTRAP_ROM_ADDR) ;
+    bootstrap PT_SHLIB AT(BOOTPATCH_ROM_ADDR) ;
+    boot      PT_SHLIB AT(BOOTSTRAP_ROM_ADDR) ;
     text      PT_SHLIB AT(PATCH_ROM_ADDR) ;
 }
 

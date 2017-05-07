@@ -6,6 +6,7 @@
 # It also pads the ROM to 16MB because some things don't like dealing with ROMs
 # with unusual sizes.
 
+import argparse
 import struct
 import sys
 
@@ -13,6 +14,18 @@ import sys
 def tryhex(n): # TriHard
     try: return hex(n)
     except TypeError: return str(n)
+
+
+def readSize(sz):
+    suffixes = {
+        'K': 1024,
+        'M': 1024 ** 2,
+        'G': 1024 ** 3,
+    }
+    if sz[-1] in suffixes:
+        return int(sz[0:-1]) * suffixes[sz[-1]]
+    else:
+        return int(sz)
 
 
 class ELF:
@@ -83,9 +96,8 @@ class ELF:
     }
 
 
-    def __init__(self, path):
-        self.path  = path
-        self.file  = open(path, 'rb')
+    def __init__(self, file):
+        self.file  = file
         self._word = ''
         self.readHeader()
 
@@ -301,101 +313,137 @@ class ELF:
         self._readSectionNames()
 
 
-def getFreePatchSlot(file):
-    prevPatch, prevRom, prevRam = 0xBF4000, 0xB0C00000, 0x80400000
-    file.seek(prevPatch)
-    while True:
-        data = file.read(16)
+class ROM:
+    patchTableOffset  = 0xBF4000
+    firstPatchRomAddr = 0xB0C00000
+    firstPatchRamAddr = 0x80400000
+
+    def __init__(self, file):
+        self.file = file
+
+
+    def getFreePatchSlot(self):
+        prevPatch = self.patchTableOffset
+        prevRom   = self.firstPatchRomAddr
+        prevRam   = self.firstPatchRamAddr
+
+        self.file.seek(prevPatch)
+        while True:
+            patch = self.readPatchEntry()
+            if patch is None: break
+            prevPatch += 16
+            romEnd = patch['romAddr'] + patch['size']
+            ramEnd = patch['ramAddr'] + patch['size']
+            if ramEnd > prevRam: prevRam = ramEnd
+            if romEnd > prevRom and patch['romAddr'] != 0: prevRom = romEnd
+        return prevPatch, prevRom, prevRam
+
+
+    def readPatchEntry(self, offset=None):
+        if offset is not None: self.file.seek(offset)
+        data = self.file.read(16)
         size, romAddr, ramAddr, entry = struct.unpack('>4I', data)
-        if size == 0 or size == 0xFFFFFFFF: break
-        prevPatch += 16
-        romEnd = romAddr + size
-        ramEnd = ramAddr + size
-        if ramEnd > prevRam: prevRam = ramEnd
-        if romEnd > prevRom and romAddr != 0: prevRom = romEnd
-    return prevPatch, prevRom, prevRam
+        if size == 0 or size == 0xFFFFFFFF: return None
+        return {
+            'size':   size,
+            'romAddr': romAddr,
+            'ramAddr': ramAddr,
+            'entry':   entry,
+        }
 
 
-def writePatchEntry(file, patchAddr, romAddr, ramAddr, entry, data):
-    # add a 0 to ensure next entry's size is zero
-    entry = struct.pack('>5I', len(data), romAddr, ramAddr, entry, 0)
-    file.seek(patchAddr)
-    file.write(entry)
+    def writePatchEntry(self, patchAddr, romAddr, ramAddr, entry, data):
+        # add a 0 to ensure next entry's size is zero
+        entry = struct.pack('>5I', len(data), romAddr, ramAddr, entry, 0)
+        self.file.seek(patchAddr)
+        self.file.write(entry)
 
 
-def printPatchTable(file):
-    file.seek(0xBF4000)
-    nPatch = 0
-    print("\nPatch table entries:")
-    print(" #    size  ROM Addr  RAM Addr     Entry")
-    while True:
-        data = file.read(16)
-        size, romAddr, ramAddr, entry = struct.unpack('>4I', data)
-        if size == 0 or size == 0xFFFFFFFF: break
-        print("%02X  %06X  %08X  %08X  %08X" % (
-            nPatch, size, romAddr, ramAddr, entry))
-        nPatch += 1
-    print(str(nPatch) + " entries.\n")
-
-
-
-def copyElfDataToRom(elf, file, entry):
-    if entry is None or entry.lower() == 'none': entry = 0xFFFFFFFF
-    else: # XXX allow symbols
-        entry = int(entry, 16)
-
-    for i, prg in enumerate(elf.programHeaders):
-        if prg['vaddr'] != 0 and prg['paddr'] != 0:
-            print(" * program header %d: ROM=0x%06X RAM=0x%08X LEN=0x%08X" % (
-                i, prg['paddr'], prg['vaddr'], prg['filesz'] ))
-            data = elf.read(prg['offset'], prg['filesz'])
-            #print("0x%06X: %s" % (prg['paddr'], data.hex()))
-
-            if prg['type'] == 0x7511:
-                # bootstrap section, do not add entry to patch table
-                file.seek(prg['paddr'])
-
-            else:
-                patchAddr, romAddr, ramAddr = getFreePatchSlot(file)
-                print(" * Patch: tbl=0x%06X rom=0x%06X ram=0x%08X "
-                    "len=0x%06X entry=0x%08X" % (
-                    patchAddr, romAddr, ramAddr, len(data), entry))
-                writePatchEntry(file, patchAddr, romAddr, ramAddr, entry, data)
-                file.seek(romAddr & 0x0FFFFFFF) #256M oughta be enough for anyone
-
-            file.write(data)
-
-    #for sec in elf.sectionHeaders: # HACK
-    #    print(" * section 0x%08X len=0x%06X: \"%s\"" % (
-    #        sec['addr'], sec['size'], sec['name']))
-    #    if sec['addr'] > 0 and sec['addr'] < 0x10000000:
-    #        data = elf.read(sec['offset'], sec['size'])
-    #        file.seek(sec['addr'])
-    #        file.write(data)
+    def printPatchTable(self):
+        self.file.seek(self.patchTableOffset)
+        nPatch = 0
+        print("\nPatch table entries:")
+        print(" #    size  ROM Addr  RAM Addr     Entry")
+        while True:
+            patch = self.readPatchEntry()
+            if patch is None: break
+            print("%02X  %06X  %08X  %08X  %08X" % (
+                nPatch, patch['size'], patch['romAddr'],
+                patch['ramAddr'], patch['entry']))
+            nPatch += 1
+        print(str(nPatch) + " entries.\n")
 
 
 
-def main(elfPath, targetPath, *args):
-    elf = ELF(elfPath)
+    def copyElf(self, elf, entry, addPatchEntry=True):
+        if entry is None or entry.lower() == 'none': entry = 0xFFFFFFFF
+        else: # XXX allow symbols
+            entry = int(entry, 16)
+
+        for i, prg in enumerate(elf.programHeaders):
+            if prg['vaddr'] != 0 and prg['paddr'] != 0:
+                print(" * program header %d: ROM=0x%06X RAM=0x%08X LEN=0x%08X" % (
+                    i, prg['paddr'], prg['vaddr'], prg['filesz'] ))
+                data = elf.read(prg['offset'], prg['filesz'])
+                #print("0x%06X: %s" % (prg['paddr'], data.hex()))
+
+                if not addPatchEntry:
+                    self.file.seek(prg['paddr'])
+
+                else:
+                    patchAddr, romAddr, ramAddr = self.getFreePatchSlot()
+                    print(" * Patch: tbl=0x%06X rom=0x%06X ram=0x%08X "
+                        "len=0x%06X entry=0x%08X" % (
+                        patchAddr, romAddr, ramAddr, len(data), entry))
+                    self.writePatchEntry(patchAddr, romAddr, ramAddr, entry, data)
+                    self.file.seek(romAddr & 0x0FFFFFFF) #256M oughta be enough for anyone
+
+                self.file.write(data)
+
+        #for sec in elf.sectionHeaders: # HACK
+        #    print(" * section 0x%08X len=0x%06X: \"%s\"" % (
+        #        sec['addr'], sec['size'], sec['name']))
+        #    if sec['addr'] > 0 and sec['addr'] < 0x10000000:
+        #        data = elf.read(sec['offset'], sec['size'])
+        #        file.seek(sec['addr'])
+        #        file.write(data)
+
+
+    def padTo(self, size):
+        self.file.seek(size - 1)
+        self.file.write(b'\x00')
+
+
+def getArgs():
+    parser = argparse.ArgumentParser(
+        description="Patch ELF file into N64 ROM.",
+        epilog="This script modifies the given ROM file, so make a backup. "
+            "It does NOT correct the ROM header CRC; use crc.py for that.")
+    A = parser.add_argument
+    A('rom', type=argparse.FileType('r+b'), help="ROM file to patch.")
+    A('patch', type=argparse.FileType('rb'), help="ELF file to patch into ROM.")
+    A('--no-load', default=False, action='store_true',
+        help="Don't add to patch table. Used for patches that don't need to be "
+        "copied into memory at startup.")
+    A('--entry', default=None, metavar='OFFSET', help="Patch entry offset. "
+        "If specified, loader will call this offset in the patch.")
+    A('--pad', default=None, type=readSize, metavar='SIZE',
+        help="Pad ROM to this size. eg '--pad 16M'")
+    return parser.parse_args()
+
+
+def main():
+    args = getArgs()
+
+    elf = ELF(args.patch)
     elf.printProgramHeaders()
     elf.printSectionHeaders()
 
-    entry = None
-    args = list(args)
-    while len(args) > 0:
-        arg = args.pop(0)
-        if arg == '--no-entry': entry = None
-        elif arg == '--entry':  entry = args.pop(0)
-        elif arg.startswith('--entry='): entry = arg.split('=',1)[1]
-        else: raise KeyError("Unknown argument: " + arg)
-
-    print("\nPatching...")
-    with open(targetPath, 'r+b') as file:
-        copyElfDataToRom(elf, file, entry)
-        printPatchTable(file)
-        file.seek((16*1024*1024) - 1) # pad to 16MB or else mupen barfs
-        file.write(b'\x00')
+    rom = ROM(args.rom)
+    rom.copyElf(elf, args.entry, not args.no_load)
+    rom.printPatchTable()
+    if args.pad is not None: rom.padTo(args.pad)
 
 
 if __name__ == '__main__':
-    sys.exit(main(*sys.argv[1:]))
+    sys.exit(main())

@@ -13,7 +13,9 @@ mkdir -p $BUILDDIR
 cp -n $SYMFILE_IN $SYMFILE_OUT
 cp -n $ROMFILE_IN $ROMFILE_OUT
 
-ENTRY=none
+unset ENTRY
+unset NOLOAD
+ROMSIZE=16M
 if [ -f $1/patch.cfg ]; then
     source $1/patch.cfg
 fi
@@ -24,7 +26,12 @@ else
     make --eval="NAME=$1" -f elf.mk
 fi
 
+PATCH_ARGS=
+if [ ! -z ${ENTRY+x} ]; then PATCH_ARGS+="--entry=$ENTRY "; fi
+if [ -n "$NOLOAD" ]; then PATCH_ARGS+="--no-load "; fi
+PATCH_ARGS+="--pad $ROMSIZE "
+
 nm $ELF_OUT > $BUILDDIR/sym.tmp
 $TOOLS/mergesyms.py $SYMFILE_OUT $BUILDDIR/sym.tmp > $SYMFILE_OUT
-$TOOLS/patch.py $ELF_OUT $ROMFILE_OUT --entry=$ENTRY
+$TOOLS/patch.py $PATCH_ARGS $ROMFILE_OUT $ELF_OUT
 $TOOLS/crc.py -v $ROMFILE_OUT
