@@ -11,6 +11,7 @@ rom_skyColors               = 0x1220E0;
 rom_trackHeaders            = 0x122390;
 textureListRomOffset        = 0x641F70; /* added to texture list ROM offsets */
 rom_end                     = 0xBE9160; /* last used byte in ROM */
+rom_patchList               = 0xBF4000; /* our patch list */
 
 
 /* Game variables and functions in RAM */

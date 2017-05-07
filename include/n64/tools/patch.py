@@ -251,6 +251,13 @@ class ELF:
                 sec['name'] = '<unable to read name at 0x%X>' % offs
 
 
+    def getProgHdrForAddr(self, addr):
+        for prg in self.programHeaders:
+            if prg['vaddr'] >= addr and (prg['vaddr']+prg['memsz']) < addr:
+                return prg
+        return None
+
+
     def printProgramHeaders(self):
         print("\nProgram headers:")
         print("  #|type    |offset  |vaddr   |paddr   |filesz  |memsz   |flags")
@@ -294,14 +301,68 @@ class ELF:
         self._readSectionNames()
 
 
-def copyElfDataToRom(elf, file):
+def getFreePatchSlot(file):
+    prevPatch, prevRom, prevRam = 0xBF4000, 0xB0C00000, 0x80400000
+    file.seek(prevPatch)
+    while True:
+        data = file.read(16)
+        size, romAddr, ramAddr, entry = struct.unpack('>4I', data)
+        if size == 0 or size == 0xFFFFFFFF: break
+        prevPatch += 16
+        romEnd = romAddr + size
+        ramEnd = ramAddr + size
+        if ramEnd > prevRam: prevRam = ramEnd
+        if romEnd > prevRom and romAddr != 0: prevRom = romEnd
+    return prevPatch, prevRom, prevRam
+
+
+def writePatchEntry(file, patchAddr, romAddr, ramAddr, entry, data):
+    # add a 0 to ensure next entry's size is zero
+    entry = struct.pack('>5I', len(data), romAddr, ramAddr, entry, 0)
+    file.seek(patchAddr)
+    file.write(entry)
+
+
+def printPatchTable(file):
+    file.seek(0xBF4000)
+    nPatch = 0
+    print("\nPatch table entries:")
+    print(" #    size  ROM Addr  RAM Addr     Entry")
+    while True:
+        data = file.read(16)
+        size, romAddr, ramAddr, entry = struct.unpack('>4I', data)
+        if size == 0 or size == 0xFFFFFFFF: break
+        print("%02X  %06X  %08X  %08X  %08X" % (
+            nPatch, size, romAddr, ramAddr, entry))
+        nPatch += 1
+    print(str(nPatch) + " entries.\n")
+
+
+
+def copyElfDataToRom(elf, file, entry):
+    if entry is None or entry.lower() == 'none': entry = 0xFFFFFFFF
+    else: # XXX allow symbols
+        entry = int(entry, 16)
+
     for i, prg in enumerate(elf.programHeaders):
         if prg['vaddr'] != 0 and prg['paddr'] != 0:
             print(" * program header %d: ROM=0x%06X RAM=0x%08X LEN=0x%08X" % (
                 i, prg['paddr'], prg['vaddr'], prg['filesz'] ))
             data = elf.read(prg['offset'], prg['filesz'])
             #print("0x%06X: %s" % (prg['paddr'], data.hex()))
-            file.seek(prg['paddr'])
+
+            if prg['type'] == 0x7511:
+                # bootstrap section, do not add entry to patch table
+                file.seek(prg['paddr'])
+
+            else:
+                patchAddr, romAddr, ramAddr = getFreePatchSlot(file)
+                print(" * Patch: tbl=0x%06X rom=0x%06X ram=0x%08X "
+                    "len=0x%06X entry=0x%08X" % (
+                    patchAddr, romAddr, ramAddr, len(data), entry))
+                writePatchEntry(file, patchAddr, romAddr, ramAddr, entry, data)
+                file.seek(romAddr & 0x0FFFFFFF) #256M oughta be enough for anyone
+
             file.write(data)
 
     #for sec in elf.sectionHeaders: # HACK
@@ -314,14 +375,24 @@ def copyElfDataToRom(elf, file):
 
 
 
-def main(elfPath, targetPath):
+def main(elfPath, targetPath, *args):
     elf = ELF(elfPath)
     elf.printProgramHeaders()
     elf.printSectionHeaders()
 
+    entry = None
+    args = list(args)
+    while len(args) > 0:
+        arg = args.pop(0)
+        if arg == '--no-entry': entry = None
+        elif arg == '--entry':  entry = args.pop(0)
+        elif arg.startswith('--entry='): entry = arg.split('=',1)[1]
+        else: raise KeyError("Unknown argument: " + arg)
+
     print("\nPatching...")
     with open(targetPath, 'r+b') as file:
-        copyElfDataToRom(elf, file)
+        copyElfDataToRom(elf, file, entry)
+        printPatchTable(file)
         file.seek((16*1024*1024) - 1) # pad to 16MB or else mupen barfs
         file.write(b'\x00')
 

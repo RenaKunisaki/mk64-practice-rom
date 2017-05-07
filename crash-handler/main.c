@@ -1,8 +1,13 @@
-#include "main.h"
+#include "../include/mk64/mk64.h"
 extern "C" {
 
+extern char* strAppend(char *dest, const char *src);
+extern char* printHex(char *buf, u32 num, int nDigits);
+extern char* printNum(char *buf, u32 num);
+extern OSThread *currentThread;
 
-void hooks_init() {
+
+void main_init() {
     //Called at boot once our code is loaded into RAM.
     if(sdrv_init()) {
         char text[512] __attribute__ ((aligned (16)));
@@ -32,7 +37,7 @@ void hooks_init() {
 
 void* titleHook(void *buf, int x1, int y1, int x2, int y2,
 uint32_t r, uint32_t g, uint32_t b, uint32_t a) {
-    (*(u32*)0x18000000) = 0xFFFFFFFF;
+    (*(u32*)0x18000000) = 0xFFFFFFFF; //crash the game to test crash handler
 }
 
 

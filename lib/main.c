@@ -1,5 +1,6 @@
-#include "main.h"
-const char *hex = "0123456789ABCDEF";
+#include <n64.h>
+extern "C" {
+static const char *hex = "0123456789ABCDEF";
 
 
 char* strAppend(char *dest, const char *src) {
@@ -41,3 +42,5 @@ char* printNum(char *buf, u32 num) {
     *buf = 0;
     return buf;
 }
+
+} //extern "C"

@@ -10,9 +10,11 @@
 
 # the assembler doesn't know where our sections are going to be,
 # so we need to define these here.
-.equ RAM_BASE, 0x80400000 # where our code is in RAM
-.equ ROM_BASE, 0xB0C00000 # where our code is in ROM
-.equ osPiStartDma, 0x800CDC30
+.equ RAM_BASE, 0x803F0000 # where our code is in RAM
+.equ ROM_BASE, 0xB0BF0000 # where our code is in ROM
+.equ rom_patchList, 0xB0BF4000 # where our list of patches begins
+.equ PATCH_RAM_ADDR, 0x80400000 # where patches go in RAM
+#.equ osPiStartDma, 0x800CDC30
 
 .macro make_jump reg, dest
     # set register `reg` to the opcode for `j dest`
@@ -30,7 +32,8 @@
 .endm
 
 
-.text
+#.text
+.section .boot, "awx", @progbits
 loader:
     bootstrap:
         # Loaded into RAM and called by our patch at boot.
@@ -41,43 +44,44 @@ loader:
         sw    $v0, 0x04($t1)
         sw    $v1, 0x08($t1)
 
-        # hook the PI thread just before it begins a DMA.
-        #make_jal $a0, dmaThreadHook_base
-        #li    $a1, 0x800D2FF8
-        #sw    $a0, ($a1)
-
-        # hook the "draw time on title screen when R pressed" routine.
-        make_jal $a0, titleHook_base
-        li    $a1, 0x8009F978
-        sw    $a0, ($a1)
-
-        # hook crash screen draw routine to print to USB
-        make_jal $a0, crashHook_base
-        li    $a1, 0x80004650
-        sw    $a0, ($a1)
-
-        # patch crash handler to only require L press
-        #li    $a1, 0x800DC6FE
-        #li    $a0, 0xFFFF
-        #sh    $a0, ($a1)
-
-        # patch crash handler to display without any button press
-        li    $a1, 0x800045F0
-        li    $a0, 0x08001192 # j 0x80004648
-        sw    $a0, ($a1)
-
         # zero BSS
         lui   $a1, %hi(RAM_BASE)
         ori   $a1, _sbss
         li    $a0, _lbss
+        beq   $a0, $zero, end_bss$ # skip if no BSS
         add   $a0, $a0, $a1
         1:
             addiu $a1, 4
             bne   $a1, $a0, 1b
               sw    $zero, -4($a1)
 
-        jal hooks_init
-          nop
+        end_bss$:
+
+        #jal hooks_init
+        #  nop
+
+        # load patches
+        li    $t7, rom_patchList
+        next_patch$:
+            lw    $a0, 0x00($t7) # get size
+            beq   $a0, $zero, end_patches$
+            # delay slot doesn't matter
+            lw    $a1, 0x04($t7) # get ROM addr
+            lw    $a2, 0x08($t7) # get RAM addr
+            lw    $a3, 0x0C($t7) # get entry point
+
+            jal   load_patch
+                sw $t7, 0x10($t1) # save T7
+
+            # restore T1 in case it was clobbered
+            # XXX use the stack instead...
+            lui   $t1, %hi(RAM_BASE)
+            ori   $t1, reg_save
+            lw    $t7, 0x10($t1) # restore T7
+            j     next_patch$
+                addiu $t7, 0x10      # to next entry
+
+        end_patches$: # end of load-patch loop
 
         lui   $t1, %hi(RAM_BASE)
         ori   $t1, reg_save
@@ -117,81 +121,68 @@ loader:
         j thread3_main_return
           nop
 
-    titleHook_base:
-        lui   $t1, %hi(RAM_BASE)
-        ori   $t1, reg_save
-        sw    $ra, 0x00($t1)
-        sw    $a0, 0x04($t1)
-        sw    $a1, 0x08($t1)
-        sw    $a2, 0x0C($t1)
-        sw    $a3, 0x10($t1)
-
-        jal   titleHook
-            move $a1, $s0
-
-        lui   $t1, %hi(RAM_BASE)
-        ori   $t1, reg_save
-        lw    $ra, 0x00($t1)
-        lw    $a0, 0x04($t1)
-        lw    $a1, 0x08($t1)
-        lw    $a2, 0x0C($t1)
-        j     0x8009FB1C
-            lw    $a3, 0x10($t1)
-
-    dmaThreadHook_base:
-        #800D33A4 jalr $ra, $t9  # a0=0 (direction) a1=devaddr a2=destaddr a3=len
-        #800D33A8 nop # t9=osPiRawStartDma
-
-        lui   $t1, %hi(RAM_BASE)
-        ori   $t1, reg_save
-        sw    $ra, 0x00($t1)
-        sw    $a0, 0x04($t1)
-        sw    $a1, 0x08($t1)
-        sw    $a2, 0x0C($t1)
-
-        jal dmaThreadHook
-            sw    $a3, 0x10($t1)
-
-        lui   $t1, %hi(RAM_BASE)
-        ori   $t1, reg_save
-        lw    $ra, 0x00($t1)
-        lw    $a0, 0x04($t1)
-        lw    $a1, 0x08($t1)
-        lw    $a2, 0x0C($t1)
-        j     0x800D3830 # back to hooked function
-            lw    $a3, 0x10($t1)
-
-    crashHook_base:
-        lui   $t1, %hi(RAM_BASE)
-        ori   $t1, reg_save
-        sw    $ra, 0x00($t1)
-        sw    $a0, 0x04($t1)
-        sw    $a1, 0x08($t1)
-        sw    $a2, 0x0C($t1)
-        sw    $a3, 0x10($t1)
-
-        jal   crashHook
-            #move $a1, $s0
-            nop
-
-        lui   $t1, %hi(RAM_BASE)
-        ori   $t1, reg_save
-        lw    $ra, 0x00($t1)
-        lw    $a0, 0x04($t1)
-        lw    $a1, 0x08($t1)
-        lw    $a2, 0x0C($t1)
-        j     0x80004298
-            lw    $a3, 0x10($t1)
 
     reg_save:
-        .word 0, 0, 0, 0, 0
+        .word 0, 0, 0, 0, 0, 0, 0, 0
+
+    next_free:
+        .word PATCH_RAM_ADDR
+
+
+    load_patch:
+        # a0=size a1=romaddr a2=ramaddr a3=entry
+
+        addiu $t1, $zero, 0 # set flags to 0
+        addiu $t0, $a3, 1
+        beql  $t0, $zero, noentry$ # if entry == 0xFFFFFFFF,
+            addiu $t1, $zero, 1    # set flags to 1
+        noentry$:
+
+        # if dest is zero, use next free addr
+        bne   $a2, $zero, checksrc$
+            nop
+
+            lw    $a2, (next_free)
+            add   $t0, $a2, $a0
+            sw    $t0, (next_free)
+
+        checksrc$:
+        # if source is zero, clear dest
+        beq   $a1, $zero, clear$
+            add   $a3, $a2 # get absolute entry point
+
+        # copy source to dest
+        1:  # loop until all data is copied.
+            lw    $t0, ($a1)
+            sw    $t0, ($a2)
+            addiu $a0,  -4
+            addiu $a1,  4
+            bgezl  $a0, 1b
+                addiu $a2, 4
+
+        # if entry point is valid, jump to it
+        done$:
+            beq   $t1, $zero, doentry$
+                nop
+            jr    $ra # no entry point
+                nop
+
+        doentry$:
+            jr    $a3 # branch to entry
+                nop
+
+        clear$: # no source, just clear destination
+            sw    $zero, ($a2)
+            addiu $a0,  -4
+            bgezl  $a0, clear$
+                addiu $a2, 4
+            j     done$
+                nop
+
+
 
 
     .align 4 # loader_size must be multiple of 4
-
-#end_loader:
-#    .equ loader_size, end_loader - loader
-#    .equ loader_read, LOADER_READ_ADDR + _ltext
 
 
 # This is the code that actually replaces thread3_main in the ROM.
@@ -211,9 +202,9 @@ thread3_main:
     # we could use DMA here, but the PI manager isn't ready yet.
     # anyway, it's only at boot, so taking a few extra microseconds
     # is no big deal.
-    lui   $a0, %hi(LOADER_READ_ADDR) # 2444
-    ori   $a0, %lo(LOADER_READ_ADDR) # 2448
-    li    $a2, _ltext                # 244C
+    lui   $a0, %hi(BOOTSTRAP_READ_ADDR) # 2444
+    ori   $a0, %lo(BOOTSTRAP_READ_ADDR) # 2448
+    li    $a2, _lboot                # 244C
     add   $a0, $a0, $a2              # 2450
     li    $a1, RAM_BASE | 0xA0000000 # 2454  use uncached address
     add   $a1, $a1, $a2              # 2458
