@@ -28,6 +28,15 @@ def readSize(sz):
         return int(sz)
 
 
+def printf(fmt, *args):
+    print(fmt % args, end='')
+
+
+verbose = 0
+def printvf(vb, fmt, *args):
+    if verbose >= vb: printf(fmt, *args)
+
+
 class ELF:
     ei_class_values  = {1:32, 2:64}
     ei_data_values   = {1:'little', 2:'big'}
@@ -153,11 +162,13 @@ class ELF:
         self._endian = '<' if self.endian == 'little' else '>'
 
         # print header
-        print("ELF class:", self.ei_class, "(%d bits)" % self.bits)
-        print("   endian:", self.ei_data, self.endian)
-        print("  version:", self.ei_version)
-        print("   OS ABI:", self.ei_osabi)
-        print("  ABI ver:", self.ei_abiversion)
+        global verbose
+        if verbose >= 2:
+            print("ELF class:", self.ei_class, "(%d bits)" % self.bits)
+            print("   endian:", self.ei_data, self.endian)
+            print("  version:", self.ei_version)
+            print("   OS ABI:", self.ei_osabi)
+            print("  ABI ver:", self.ei_abiversion)
 
 
     def _readHeader2(self):
@@ -185,19 +196,21 @@ class ELF:
         self.type    = self.e_type_values   [self.e_type]
         self.machine = self.e_machine_values[self.e_machine]
 
-        print("     type:", self.e_type, self.type)
-        print("  machine:", self.e_machine, self.machine)
-        print("  version:", self.e_version)
-        print("    entry:", hex(self.e_entry))
-        print("    phoff:", hex(self.e_phoff))
-        print("    shoff:", hex(self.e_shoff))
-        print("    flags:", hex(self.e_flags))
-        print("   ehsize:", hex(self.e_ehsize))
-        print("phentsize:", hex(self.e_phentsize))
-        print("    phnum:", hex(self.e_phnum))
-        print("shentsize:", hex(self.e_shentsize))
-        print("    shnum:", hex(self.e_shnum))
-        print(" shstrndx:", hex(self.e_shstrndx))
+        global verbose
+        if verbose >= 2:
+            print("     type:", self.e_type, self.type)
+            print("  machine:", self.e_machine, self.machine)
+            print("  version:", self.e_version)
+            print("    entry:", hex(self.e_entry))
+            print("    phoff:", hex(self.e_phoff))
+            print("    shoff:", hex(self.e_shoff))
+            print("    flags:", hex(self.e_flags))
+            print("   ehsize:", hex(self.e_ehsize))
+            print("phentsize:", hex(self.e_phentsize))
+            print("    phnum:", hex(self.e_phnum))
+            print("shentsize:", hex(self.e_shentsize))
+            print("    shnum:", hex(self.e_shnum))
+            print(" shstrndx:", hex(self.e_shstrndx))
 
 
     def _readProgramHeaders(self):
@@ -383,8 +396,9 @@ class ROM:
 
         for i, prg in enumerate(elf.programHeaders):
             if prg['vaddr'] != 0 and prg['paddr'] != 0:
-                print(" * program header %d: ROM=0x%06X RAM=0x%08X LEN=0x%08X" % (
-                    i, prg['paddr'], prg['vaddr'], prg['filesz'] ))
+                printvf(1,
+                    " * program header %d: ROM=0x%06X RAM=0x%08X LEN=0x%08X\n",
+                    i, prg['paddr'], prg['vaddr'], prg['filesz'])
                 data = elf.read(prg['offset'], prg['filesz'])
                 #print("0x%06X: %s" % (prg['paddr'], data.hex()))
 
@@ -393,10 +407,11 @@ class ROM:
 
                 else:
                     patchAddr, romAddr, ramAddr = self.getFreePatchSlot()
-                    print(" * Patch: tbl=0x%06X rom=0x%06X ram=0x%08X "
-                        "len=0x%06X entry=0x%08X" % (
-                        patchAddr, romAddr, ramAddr, len(data), entry))
-                    self.writePatchEntry(patchAddr, romAddr, ramAddr, entry, data)
+                    printvf(1, " * Patch: tbl=0x%06X rom=0x%06X ram=0x%08X "
+                        "len=0x%06X entry=0x%08X\n",
+                        patchAddr, romAddr, ramAddr, len(data), entry)
+                    self.writePatchEntry(
+                        patchAddr, romAddr, ramAddr, entry, data)
                     self.file.seek(romAddr & 0x0FFFFFFF) #256M oughta be enough for anyone
 
                 self.file.write(data)
@@ -430,6 +445,8 @@ def getArgs():
         "If specified, loader will call this offset in the patch.")
     A('--pad', default=None, type=readSize, metavar='SIZE',
         help="Pad ROM to this size. eg '--pad 16M'")
+    A('--verbose', '-v', action='count', default=0,
+        help="Print more details.")
     A('rom', type=argparse.FileType('r+b'), nargs='?',
         help="ROM file to patch.")
     A('patch', nargs='?', type=argparse.FileType('rb'),
@@ -439,7 +456,9 @@ def getArgs():
 
 
 def main():
+    global verbose
     args = getArgs()
+    verbose = args.verbose
 
     if args.get_free:
         rom = ROM(args.rom)
@@ -448,12 +467,16 @@ def main():
         return 0
 
     elf = ELF(args.patch)
-    elf.printProgramHeaders()
-    elf.printSectionHeaders()
+    if verbose >= 2:
+        elf.printProgramHeaders()
+        elf.printSectionHeaders()
 
     rom = ROM(args.rom)
     rom.copyElf(elf, args.entry, not args.no_load)
-    rom.printPatchTable()
+
+    if verbose >= 2:
+        rom.printPatchTable()
+
     if args.pad is not None: rom.padTo(args.pad)
 
 
