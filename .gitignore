@@ -1,6 +1,10 @@
 # misc/temp files
 **/~*
 *.log
+*.rom
+*.n64
+*.v64
+*.z64
 __pycache__
 **/.build/*
 **/build/*
