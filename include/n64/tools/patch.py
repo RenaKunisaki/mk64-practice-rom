@@ -272,7 +272,8 @@ class ELF:
 
     def printProgramHeaders(self):
         print("\nProgram headers:")
-        print("  #|type    |offset  |vaddr   |paddr   |filesz  |memsz   |flags")
+        print("\x1B[4m  #|type    |offset  |vaddr   |paddr   |filesz  "
+            "|memsz   |flags        \x1B[0m")
         for i, prg in enumerate(self.programHeaders):
             flags = [name for name,flag in prg['flags'].items() if flag]
             print("%3d|%-8s|%8X|%8X|%8X|%8X|%8X|%s" % (i,
@@ -288,8 +289,8 @@ class ELF:
 
     def printSectionHeaders(self):
         print("\nSection headers:")
-        print("  #|name      |type      |addr    |offset|size  |link|"
-            "info|algn|entsiz|flags")
+        print("\x1B[4m  #|name      |type      |addr    |offset|size  |link|"
+            "info|algn|entsiz|flags          \x1B[0m")
         for i, sec in enumerate(self.sectionHeaders):
             flags = [name for name,flag in sec['flags'].items() if flag]
             print("%3d|%-10s|%-10s|%8X|%6X|%6X|%4X|%4X|%4X|%6X|%s" % (i,
@@ -363,11 +364,11 @@ class ROM:
         self.file.seek(self.patchTableOffset)
         nPatch = 0
         print("\nPatch table entries:")
-        print(" #    size  ROM Addr  RAM Addr     Entry")
+        print("\x1B[4m  #|size  |ROM Addr|RAM Addr|Entry   \x1B[0m")
         while True:
             patch = self.readPatchEntry()
             if patch is None: break
-            print("%02X  %06X  %08X  %08X  %08X" % (
+            print("%3d|%06X|%08X|%08X|%08X" % (
                 nPatch, patch['size'], patch['romAddr'],
                 patch['ramAddr'], patch['entry']))
             nPatch += 1
