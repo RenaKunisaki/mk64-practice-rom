@@ -43,7 +43,7 @@ PATCH_ARGS+="--pad $ROMSIZE "
 
 nm $ELF_OUT > $BUILDDIR/sym.tmp
 $TOOLS/mergesyms.py $SYMFILE_OUT $BUILDDIR/sym.tmp > $SYMFILE_OUT
-$TOOLS/patch.py $PATCH_ARGS $ROMFILE_OUT $ELF_OUT
+$TOOLS/patch.py -vv $PATCH_ARGS $ROMFILE_OUT $ELF_OUT
 $TOOLS/crc.py -v $ROMFILE_OUT
 
 make_memory_ld $($TOOLS/patch.py --get-free $ROMFILE_OUT)

@@ -1,7 +1,7 @@
 cur_makefile := $(abspath $(lastword $(MAKEFILE_LIST)))
 PWD := $(patsubst %/,%,$(dir $(cur_makefile)))
 
-ASFLAGS ?= --defsym .text=0x80400000
+#ASFLAGS ?= --defsym .text=0x80400000
 
 include $(PWD)/config.mk
 
@@ -15,6 +15,12 @@ OUTPUT  := $(BUILDDIR)/$(NAME).elf
 CFILES := $(wildcard $(PWD)/$(NAME)/*.c)
 SFILES := $(wildcard $(PWD)/$(NAME)/*.s)
 OBJS ?= $(CFILES:.c=.o) $(SFILES:.s=.o)
+
+N64LIB := $(PWD)/include/n64/lib
+OBJS += $(N64LIB)/64drive/64drive.o \
+	$(N64LIB)/libc/libc.o \
+	$(N64LIB)/rawio/rawio.o
+
 all: $(OUTPUT)
 	@echo done
 

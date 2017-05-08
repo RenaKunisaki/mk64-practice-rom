@@ -7,7 +7,7 @@ extern char* printNum(char *buf, u32 num);
 extern OSThread *currentThread;
 
 
-void main_init() {
+void crash_main_init() {
     //Called at boot once our code is loaded into RAM.
     if(sdrv_init()) {
         char text[512] __attribute__ ((aligned (16)));

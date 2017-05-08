@@ -24,7 +24,7 @@
 .endm
 
 .text
-hooks_init:
+crash_hooks_init:
     # hook the PI thread just before it begins a DMA.
     #make_jal $a0, dmaThreadHook_base
     #li    $a1, 0x800D2FF8
@@ -50,7 +50,7 @@ hooks_init:
     li    $a0, 0x08001192 # j 0x80004648
     sw    $a0, ($a1)
 
-    j    main_init
+    j    crash_main_init
       nop
 
 

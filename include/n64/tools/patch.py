@@ -106,6 +106,8 @@ class ELF:
 
 
     def __init__(self, file):
+        self.programHeaders = None
+        self.sectionHeaders = None
         self.file  = file
         self._word = ''
         self.readHeader()
@@ -133,6 +135,52 @@ class ELF:
         for mask, name in flags.items():
             result[name] = (value & mask) != 0
         return result
+
+
+    def _getString(self, offset, table=None):
+        if table is None:
+            table = self.sectionHeaders[self.e_shstrndx]
+        data = self.read(table['offset'], table['size'])
+        try:
+            zero = data[offset:].find(b'\x00')
+            return data[offset : offset+zero].decode('utf-8')
+        except Exception as ex:
+            print("error reading string from", hex(offset), ex)
+            return None
+
+
+    def readSyms(self):
+        fields = (
+            ('I', 'st_name'),
+            ('~', 'st_value'),
+            ('I', 'st_size'),
+            ('B', 'st_info'),
+            ('B', 'st_other'),
+            ('H', 'st_shndx'),
+        )
+
+        if self.sectionHeaders is None:
+            self._readSectionHeaders()
+        sec, strtab = None, None
+        for s in self.sectionHeaders:
+            if s['type'] == 'symtab':
+                sec = s
+            elif s['name'] == '.strtab':
+                strtab = s
+        if sec is None: return {}
+
+        syms    = {}
+        offset  = 0
+        base    = sec['offset']
+        size    = sec['size']
+        entSize = sec['entsize']
+        while offset < size:
+            sym = self.readFields(base+offset, fields, self._endian)
+            sym['name'] = self._getString(sym['st_name'], strtab)
+            if sym['name'] is not None and sym['name'] != '':
+                syms[sym['name']] = sym
+            offset += entSize
+        return syms
 
 
     def _readHeader1(self):
@@ -388,12 +436,27 @@ class ROM:
         print(str(nPatch) + " entries.\n")
 
 
+    def _getEntry(self, elf, entry, base=0):
+        if entry is None or entry.lower() == 'none':
+            entry = 0xFFFFFFFF
+        else:
+            try:
+                entry = int(entry, 16)
+            except ValueError:
+                syms = elf.readSyms()
+                try:
+                    sym = syms[entry]['st_value']
+                    entry = sym - base
+                    if entry < 0: raise ValueError(
+                        ("entry address out of range (0x%X < 0x%X) - "
+                        "patch already applied?") % (sym, base))
+                except KeyError:
+                    raise KeyError("entry: symbol '%s' not found" % entry)
+        return entry
+
+
 
     def copyElf(self, elf, entry, addPatchEntry=True):
-        if entry is None or entry.lower() == 'none': entry = 0xFFFFFFFF
-        else: # XXX allow symbols
-            entry = int(entry, 16)
-
         for i, prg in enumerate(elf.programHeaders):
             if prg['vaddr'] != 0 and prg['paddr'] != 0:
                 printvf(1,
@@ -407,6 +470,8 @@ class ROM:
 
                 else:
                     patchAddr, romAddr, ramAddr = self.getFreePatchSlot()
+                    entry = self._getEntry(elf, entry, ramAddr)
+
                     printvf(1, " * Patch: tbl=0x%06X rom=0x%06X ram=0x%08X "
                         "len=0x%06X entry=0x%08X\n",
                         patchAddr, romAddr, ramAddr, len(data), entry)
@@ -488,4 +553,10 @@ def main():
 
 
 if __name__ == '__main__':
-    sys.exit(main())
+    try:
+        sys.exit(main())
+    except KeyboardInterrupt:
+        sys.exit(1)
+    except Exception as ex:
+        print(str(ex), file=sys.stderr)
+        sys.exit(1)
