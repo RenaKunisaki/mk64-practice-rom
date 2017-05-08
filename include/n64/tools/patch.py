@@ -436,19 +436,26 @@ def getArgs():
         epilog="This script modifies the given ROM file, so make a backup. "
             "It does NOT correct the ROM header CRC; use crc.py for that.")
     A = parser.add_argument
+
     A('--get-free', default=False, action='store_true',
         help="Print addresses of next free space and exit.")
+
     A('--no-load', default=False, action='store_true',
         help="Don't add to patch table. Used for patches that don't need to be "
         "copied into memory at startup.")
+
     A('--entry', default=None, metavar='OFFSET', help="Patch entry offset. "
         "If specified, loader will call this offset in the patch.")
+
     A('--pad', default=None, type=readSize, metavar='SIZE',
         help="Pad ROM to this size. eg '--pad 16M'")
+
     A('--verbose', '-v', action='count', default=0,
         help="Print more details.")
+
     A('rom', type=argparse.FileType('r+b'), nargs='?',
         help="ROM file to patch.")
+
     A('patch', nargs='?', type=argparse.FileType('rb'),
         help="ELF file to patch into ROM.")
 
