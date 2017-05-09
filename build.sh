@@ -23,6 +23,8 @@ if [ ! -f $BUILDDIR/memory.ld ]; then
     make_memory_ld 0xC00000 0x80400000
 fi
 
+TEXT=$(grep 'PATCH_RAM_ADDR' .build/memory.ld | cut -c18-27)
+
 unset ENTRY
 unset NOLOAD
 ROMSIZE=16M
@@ -33,7 +35,7 @@ fi
 if [ -f $1/makefile ]; then
     make -C $1
 else
-    make --eval="NAME=$1" -f elf.mk
+    make --eval="NAME=$1" --eval="ASFLAGS ?= --defsym .text=$TEXT" -f elf.mk
 fi
 
 PATCH_ARGS=
