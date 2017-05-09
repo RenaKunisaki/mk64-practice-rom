@@ -27,7 +27,6 @@ TEXT=$(grep 'PATCH_RAM_ADDR' .build/memory.ld | cut -c18-27)
 #echo " * TEXT = $TEXT"
 
 unset ENTRY
-unset NOLOAD
 ROMSIZE=16M
 if [ -f $1/patch.cfg ]; then
     source $1/patch.cfg
@@ -41,7 +40,6 @@ fi
 
 PATCH_ARGS=
 if [ ! -z ${ENTRY+x} ]; then PATCH_ARGS+="--entry=$ENTRY "; fi
-if [ -n "$NOLOAD" ]; then PATCH_ARGS+="--no-load "; fi
 PATCH_ARGS+="--pad $ROMSIZE "
 
 nm $ELF_OUT > $BUILDDIR/sym.tmp

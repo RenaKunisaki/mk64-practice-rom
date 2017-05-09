@@ -42,13 +42,17 @@ dirs:
 #	$(OBJCOPY) -O binary -j .text -j .data $(ELF) $@
 
 $(ELF): dirs $(OBJS)
+	@echo " * Linking: $(notdir $(OBJS))"
 	$(call LINK, $(OBJS), $(ELF))
 
 $(BUILDDIR)/%.o: $(SRCDIR)/%.c
+	@echo " * Compiling: $<"
 	$(call COMPILE, $<, $@)
 
 $(BUILDDIR)/%.o: $(SRCDIR)/%.s
+	@echo " * Assembling: $<"
 	$(call ASSEMBLE, $<, $@)
 
 $(BUILDDIR)/lib/%.o: n64/lib/%.c
+	@echo " * Compiling: $<"
 	$(call COMPILE, $<, $@)

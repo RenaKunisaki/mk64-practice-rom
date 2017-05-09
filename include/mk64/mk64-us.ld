@@ -8,6 +8,11 @@ BOOTSTRAP_READ_ADDR = BOOTSTRAP_ROM_ADDR | 0xB0000000;
 
 PHDRS
 {
+    headers   PT_PHDR FILEHDR PHDRS ;
+    dummy     PT_LOAD ;
+    data      PT_LOAD ;
+    dynamic   PT_DYNAMIC ;
+
     /* these have to be PT_SHLIB or else the VMA becomes zero
      * because reasons.  or it tries to make a 2GB file.
      * or PT_DYNAMIC but then readelf barfs since that's not
@@ -22,6 +27,8 @@ PHDRS
 
 SECTIONS
 {
+    .dynamic : { *(.dynamic) } :data :dynamic
+
     . = BOOTPATCH_RAM_ADDR;
     .bootstrap . : { KEEP(*(.bootstrap)); } AT>RAM :bootstrap
 
@@ -38,21 +45,22 @@ SECTIONS
         _stext = .;
         *(.text);
         *(.*data*);
+        *(.*got*);
         _etext = .;
         _ltext = _etext - _stext;
     } AT>RAM :text
 
     /* .data . : { _sdata = . ; *(.*data); _edata = . ; } */
 
-    .bss  . : {
+    .bss . : {
         _sbss  = .;
         *(.bss);
          _ebss  = . ;
          _lbss = _ebss - _sbss;
-    }
+    } AT>RAM :text
 
     /* get these out of the way */
-    .junk . : {
+    .junk : {
         *(.reginfo) *(.gnu.*) *(.MIPS.*)
-    } :NONE
+    } :dummy
 }

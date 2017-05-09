@@ -21,6 +21,8 @@ OBJS += $(N64LIB)/64drive/64drive.o \
 	$(N64LIB)/libc/libc.o \
 	$(N64LIB)/rawio/rawio.o
 
+.PHONY: all clean
+
 all: $(OUTPUT)
 	@echo done
 
@@ -29,16 +31,16 @@ clean:
 
 $(OUTPUT): $(OBJS)
 	@echo " * Linking: $(notdir $(OBJS))"
-	@$(call LINK, $(OBJS), $(OUTPUT))
+	$(call LINK, $(OBJS), $(OUTPUT))
 
 $(BUILDDIR)/%.o: $(SRCDIR)/%.c
 	@echo " * Compiling: $<"
-	@$(call COMPILE, $<, $@)
+	$(call COMPILE, $<, $@)
 
 $(BUILDDIR)/%.o: $(SRCDIR)/%.s
 	@echo " * Assembling: $<"
-	@$(call ASSEMBLE, $<, $@)
+	$(call ASSEMBLE, $<, $@)
 
-$(BUILDDIR)/lib/%.o: n64/lib/%.c
+$(BUILDDIR)/lib/%.o: $(PWD)/include/n64/lib/%.c
 	@echo " * Compiling: $<"
-	@$(call COMPILE, $<, $@)
+	$(call COMPILE, $<, $@)

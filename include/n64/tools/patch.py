@@ -376,6 +376,7 @@ class ELF:
 
 
 class ROM:
+    originalSize      = 0xC00000
     patchTableOffset  = 0xBF4000
     firstPatchRomAddr = 0xB0C00000
     firstPatchRamAddr = 0x80400000
@@ -421,6 +422,13 @@ class ROM:
         self.file.write(entry)
 
 
+    def writeBssEntry(self, patchAddr, ramAddr, size):
+        # add a 0 to ensure next entry's size is zero
+        entry = struct.pack('>5I', size, 0, ramAddr, 0xFFFFFFFF, 0)
+        self.file.seek(patchAddr)
+        self.file.write(entry)
+
+
     def printPatchTable(self):
         self.file.seek(self.patchTableOffset)
         nPatch = 0
@@ -437,9 +445,9 @@ class ROM:
 
 
     def _getEntry(self, elf, entry, base=0):
-        if entry is None or entry.lower() == 'none':
+        if entry is None or str(entry).lower() == 'none':
             entry = 0xFFFFFFFF
-        else:
+        elif type(entry) is str:
             try:
                 entry = int(entry, 16)
             except ValueError:
@@ -456,27 +464,36 @@ class ROM:
 
 
 
-    def copyElf(self, elf, entry, addPatchEntry=True):
+    def copyElf(self, elf, entry):
         for i, prg in enumerate(elf.programHeaders):
-            if prg['vaddr'] != 0 and prg['paddr'] != 0:
+            paddr, vaddr = prg['paddr'], prg['vaddr']
+            if vaddr >= 0x80000000 and paddr != 0:
+                filesz, memsz = prg['filesz'], prg['memsz']
+
                 printvf(1,
                     " * program header %d: ROM=0x%06X RAM=0x%08X LEN=0x%08X\n",
-                    i, prg['paddr'], prg['vaddr'], prg['filesz'])
-                data = elf.read(prg['offset'], prg['filesz'])
+                    i, paddr, vaddr, filesz)
+                data = elf.read(prg['offset'], filesz)
                 #print("0x%06X: %s" % (prg['paddr'], data.hex()))
 
-                if not addPatchEntry:
-                    self.file.seek(prg['paddr'])
+                if paddr < self.originalSize:
+                    # don't add an entry to the patch table
+                    self.file.seek(paddr)
 
                 else:
                     patchAddr, romAddr, ramAddr = self.getFreePatchSlot()
                     entry = self._getEntry(elf, entry, ramAddr)
 
                     printvf(1, " * Patch: tbl=0x%06X rom=0x%06X ram=0x%08X "
-                        "len=0x%06X entry=0x%08X\n",
-                        patchAddr, romAddr, ramAddr, len(data), entry)
+                        "len=0x%06X memsz=0x%06X entry=0x%08X\n",
+                        patchAddr, romAddr, ramAddr, len(data), memsz, entry)
                     self.writePatchEntry(
                         patchAddr, romAddr, ramAddr, entry, data)
+
+                    if memsz > filesz:
+                        self.writeBssEntry(patchAddr + 16,
+                            ramAddr + filesz, memsz - filesz)
+
                     self.file.seek(romAddr & 0x0FFFFFFF) #256M oughta be enough for anyone
 
                 self.file.write(data)
@@ -504,10 +521,6 @@ def getArgs():
 
     A('--get-free', default=False, action='store_true',
         help="Print addresses of next free space and exit.")
-
-    A('--no-load', default=False, action='store_true',
-        help="Don't add to patch table. Used for patches that don't need to be "
-        "copied into memory at startup.")
 
     A('--entry', default=None, metavar='OFFSET', help="Patch entry offset. "
         "If specified, loader will call this offset in the patch.")
@@ -544,7 +557,7 @@ def main():
         elf.printSectionHeaders()
 
     rom = ROM(args.rom)
-    rom.copyElf(elf, args.entry, not args.no_load)
+    rom.copyElf(elf, args.entry)
 
     if verbose >= 2:
         rom.printPatchTable()
@@ -557,6 +570,6 @@ if __name__ == '__main__':
         sys.exit(main())
     except KeyboardInterrupt:
         sys.exit(1)
-    except Exception as ex:
-        print(str(ex), file=sys.stderr)
-        sys.exit(1)
+    #except Exception as ex:
+    #    print(str(ex), file=sys.stderr)
+    #    sys.exit(1)
