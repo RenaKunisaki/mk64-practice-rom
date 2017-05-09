@@ -6,9 +6,6 @@ MEMORY
     /* ROMFILE: used to refer to offsets in the ROM file itself */
     ROMFILE    (rwx) : ORIGIN = 0x00000000, LENGTH = 128M
 
-    /* PATCH: same as ROMFILE, but our scripts read this section */
-    PATCH      (rwx) : ORIGIN = 0x00000000, LENGTH = 128M
-
     /* rest are N64 memory space */
     RDRAM      (rwx) : ORIGIN = 0x00000000, LENGTH = 8M /* actual physical RAM */
     RDRAM_REGS (rw)  : ORIGIN = 0x03F00000, LENGTH = 1M /* RAM control registers */

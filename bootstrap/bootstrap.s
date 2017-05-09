@@ -14,7 +14,6 @@
 .equ ROM_BASE, 0xB0BF0000 # where our code is in ROM
 .equ rom_patchList, 0xB0BF4000 # where our list of patches begins
 .equ PATCH_RAM_ADDR, 0x80400000 # where patches go in RAM
-#.equ osPiStartDma, 0x800CDC30
 
 .macro make_jump reg, dest
     # set register `reg` to the opcode for `j dest`

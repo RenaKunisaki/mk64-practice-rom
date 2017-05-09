@@ -30,7 +30,7 @@ COMPILE=$(CC) $(CFLAGS) -c $1 -o $2
 ASSEMBLE=$(AS) $(ASFLAGS) $1 -o $2
 
 # function LINK(infile, outfile)
-LINK=$(CC) $1 $(LDFLAGS) -o $2
+LINK=$(LD) $1 $(LDFLAGS) -o $2
 
 ELF=$(BUILDDIR)/$(PROJECT).elf
 HEX=$(BINDIR)/$(PROJECT).hex

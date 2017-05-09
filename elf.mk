@@ -1,8 +1,6 @@
 cur_makefile := $(abspath $(lastword $(MAKEFILE_LIST)))
 PWD := $(patsubst %/,%,$(dir $(cur_makefile)))
 
-#ASFLAGS ?= --defsym .text=0x80400000
-
 include $(PWD)/config.mk
 
 LINKSCRIPTS := -T$(PWD)/.build/memory.ld \
