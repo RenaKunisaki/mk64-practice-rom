@@ -24,6 +24,7 @@ if [ ! -f $BUILDDIR/memory.ld ]; then
 fi
 
 TEXT=$(grep 'PATCH_RAM_ADDR' .build/memory.ld | cut -c18-27)
+#echo " * TEXT = $TEXT"
 
 unset ENTRY
 unset NOLOAD
