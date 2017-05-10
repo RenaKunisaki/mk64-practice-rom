@@ -160,11 +160,11 @@ void crashHook(u16 *framebuffer, OSThread *thread) {
         sdrv_dprint(text);
     }
 
-    sdrv_dprint("\r\nCode:\r\n");
-    u32 *code = (u32*)thread->context.pc - 16;
+    sdrv_dprint("Code:\r\n");
+    u32 *code = (u32*)thread->context.pc - 64;
     for(int i=0; i<256; i += 8) {
         buf = text;
-        buf = printHex (buf, (u32)code, 8);
+        buf = printHex(buf, (u32)code, 8);
         *buf++ = ':';
         for(int j=0; j<8; j++) {
             if((u32)code == thread->context.pc) *buf++ = '[';
