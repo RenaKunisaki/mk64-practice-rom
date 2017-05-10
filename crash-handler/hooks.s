@@ -1,27 +1,7 @@
-#.include "../lib.s"
-
 .set noreorder # don't rearrange branches
+.include ".build/memory.s"
 
-# the assembler doesn't know where our sections are going to be,
-# so we need to define these here.
-.equ RAM_BASE, 0x80400000 # where our code is in RAM
-.equ ROM_BASE, 0xB0C00000 # where our code is in ROM
 #.equ osPiStartDma, 0x800CDC30
-
-.macro make_jump reg, dest
-    # set register `reg` to the opcode for `j dest`
-    # no idea why li doesn't work here.
-    # also we have to do some tricky stuff with masking here because
-    # for some reason we can't operate directly on .text
-    lui \reg, %hi(((\dest - .text) | (RAM_BASE & 0x7FFFFF)) >> 2) | 0x08000000
-    ori \reg, %lo(((\dest - .text) | (RAM_BASE & 0x7FFFFF)) >> 2)
-.endm
-
-.macro make_jal reg, dest
-    # set register `reg` to the opcode for `jal dest`
-    lui \reg, %hi(((\dest - .text) | (RAM_BASE & 0x7FFFFF)) >> 2) | 0x0C000000
-    ori \reg, %lo(((\dest - .text) | (RAM_BASE & 0x7FFFFF)) >> 2)
-.endm
 
 .text
 crash_hooks_init:
@@ -31,12 +11,12 @@ crash_hooks_init:
     #sw    $a0, ($a1)
 
     # hook the "draw time on title screen when R pressed" routine.
-    make_jal $a0, titleHook_base
+    lw    $a0, jal_titleHook_base
     li    $a1, 0x8009F978
     sw    $a0, ($a1)
 
     # hook crash screen draw routine to print to USB
-    make_jal $a0, crashHook_base
+    lw    $a0, jal_crashHook_base
     li    $a1, 0x80004650
     sw    $a0, ($a1)
 
@@ -53,8 +33,15 @@ crash_hooks_init:
     j    crash_main_init
       nop
 
+# these are copied to the appropriate places in RAM, patching existing code.
+# the delay slot doesn't apply since these won't be executed here.
+# this wastes a few bytes vs just loading the opcode directly with li,
+# but there doesn't seem to be a reliable way to do that.
+jal_titleHook_base: jal titleHook_base
+jal_crashHook_base: jal crashHook_base
 
-reg_save:
+
+crash_reg_save:
   .word 0, 0, 0, 0, 0, 0, 0, 0
 
 

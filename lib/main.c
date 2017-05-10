@@ -29,7 +29,7 @@ char* printNum(char *buf, u32 num) {
     //returns pointer to null terminator.
     char digits[16];
     char *d = digits;
-    *d = '0';
+    *d++ = '0';
     while(num > 0) {
         *d++ = hex[num % 10];
         num /= 10;
