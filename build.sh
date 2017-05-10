@@ -64,3 +64,6 @@ $TOOLS/crc.py -v $ROMFILE_OUT
 
 # update memory.ld for next patch
 make_memory_ld $($TOOLS/patch.py --get-free $ROMFILE_OUT)
+
+# also generate a .cod file for Nemu
+$TOOLS/mergesyms.py -c $BUILDDIR/symbols.sym > patched.cod

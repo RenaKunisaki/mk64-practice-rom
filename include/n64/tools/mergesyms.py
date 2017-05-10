@@ -5,6 +5,7 @@
 # or in `nm` output format, eg:
 # ABCD0123 X foo
 
+import argparse
 import sys
 
 ignore_syms = (
@@ -31,17 +32,16 @@ def parseLineFromNm(line):
     return name, addr
 
 
-def readSyms(path):
+def readSyms(file):
     syms = {}
-    with open(path) as file:
-        while True:
-            line = file.readline()
-            if line == '': break
-            elif '=' in line: name, addr = parseLineFromSymFile(line)
-            else: name, addr = parseLineFromNm(line)
-            if (name is None) or (addr is None): continue
+    while True:
+        line = file.readline()
+        if line == '': break
+        elif '=' in line: name, addr = parseLineFromSymFile(line)
+        else: name, addr = parseLineFromNm(line)
+        if (name is None) or (addr is None): continue
 
-            syms[name] = addr
+        syms[name] = addr
     return syms
 
 
@@ -58,13 +58,31 @@ def generateSymFile(syms):
             print("%-32s = 0x%08X;" % (name, int(addr, 16)))
 
 
-def main(*args):
+def getArgs():
+    parser = argparse.ArgumentParser(
+        description="Parse and merge symbol files.",
+        epilog="Accepts files in .sym format (as used by `ld`) or "
+            "in `nm` output format.")
+    A = parser.add_argument
+
+    A('-c', '--cod-file', default=False, action='store_true',
+        help="Generate Nemu64 .cod file output. Otherwise, generate .sym file.")
+
+    A('file', type=argparse.FileType('r'), nargs='+',
+        help="Symbol files to read.")
+
+    return parser.parse_args()
+
+
+def main():
+    args = getArgs()
     syms = {}
-    for path in args:
-        syms.update(readSyms(path))
-    #generateCodFile(syms)
-    generateSymFile(syms)
+    for file in args.file:
+        syms.update(readSyms(file))
+
+    if args.cod_file: generateCodFile(syms)
+    else: generateSymFile(syms)
 
 
 if __name__ == '__main__':
-    sys.exit(main(*sys.argv[1:]))
+    sys.exit(main())

@@ -5,6 +5,7 @@
 *.n64
 *.v64
 *.z64
+*.cod
 __pycache__
 **/.build/*
 **/build/*
