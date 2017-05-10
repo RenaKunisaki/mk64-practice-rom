@@ -28,19 +28,19 @@ char* printNum(char *buf, u32 num) {
     //print decimal number into buffer.
     //returns pointer to null terminator.
     char digits[16];
-    char *d = digits;
-    *d++ = '0';
-    while(num > 0) {
-        *d++ = hex[num % 10];
+    char *d = &digits[15];
+    *d-- = '\0';
+    while(num > 0 || d == &digits[14]) {
+        *d-- = hex[num % 10];
         num /= 10;
     }
 
     do {
-        *buf++ = *--d;
-    } while(d != digits);
+        *buf = *++d;
+    } while(*buf++);
 
-    *buf = 0;
-    return buf;
+    // *buf = 0;
+    return --buf;
 }
 
 } //extern "C"
