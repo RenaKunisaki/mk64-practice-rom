@@ -1,6 +1,6 @@
 typedef struct {
+    s16 x, y;
     u16 buttons;
-    s8 x, y;
 } controllerState;
 
 extern controllerState controller1_state; //XXX others?
