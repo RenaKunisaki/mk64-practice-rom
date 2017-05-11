@@ -176,6 +176,7 @@ void sdrv_dprint(const char *text) {
     }
 
     u32 intMask = __osDisableInt();
+    while(dma_busy());
 
     //write text to buffer
     sdrv_setRomWritable(1);

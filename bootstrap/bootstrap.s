@@ -150,9 +150,9 @@ loader:
         add   $a3, $a2 # get absolute entry point
         # use uncached destination so that it executes correctly.
         # otherwise code is stuck in dcache and not fetched.
-        lui $at, 0x2000
+        lui $t2, 0x2000
         beq   $a1, $zero, clear$
-            or  $a2, $a2, $at
+            or  $a2, $a2, $t2
 
         # copy source to dest
         1:  # loop until all data is copied.

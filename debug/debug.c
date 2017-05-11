@@ -28,15 +28,24 @@ void doButton() {
     debugMenuCursorPos = debugMode + 1;
 }
 
+void (*replaced)() = (void(*)())0x80001ECC;
 void debugHook() {
     //called every frame
+    replaced();
     static int buttonCounter = 0;
     u16 buttons = player1_controllerState.buttons;
     u16 debugBtns = L_TRIG | Z_TRIG;
 
+    if(debugMode) {
+        //textSetColor(1);
+        //textDraw(30, 30, "HELLO", 8, 1.0f, 1.0f);
+        debugLoadFont();
+        debugPrintStr(0, 0, "now on DEBUG...");
+    }
+
     //if 64drive button pressed, or L+Z pressed, toggle debug mode
-    if((sdrv_isInit && sdrv_isButtonPressed())
-    || (buttons & debugBtns) == debugBtns) {
+    if(/*(sdrv_isInit && sdrv_isButtonPressed())
+    || */ (buttons & debugBtns) == debugBtns) {
         buttonCounter++; //debounce button
         if(buttonCounter == 4) doButton();
     }

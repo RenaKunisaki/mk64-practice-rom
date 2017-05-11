@@ -37,7 +37,7 @@ void crash_main_init() {
 
 void* titleHook(void *buf, int x1, int y1, int x2, int y2,
 uint32_t r, uint32_t g, uint32_t b, uint32_t a) {
-    (*(u32*)0x18000000) = 0xFFFFFFFF; //crash the game to test crash handler
+    (*(u32*)0xDEADBEEF) = 0xFFFFFFFF; //crash the game to test crash handler
 }
 
 
@@ -152,7 +152,7 @@ void crashHook(u16 *framebuffer, OSThread *thread) {
         buf = printHex (buf, (u32)stack, 8);
         buf = strAppend(buf, ": ");
         for(int j=0; j<8; j++) {
-            buf = printHex(buf, *stack--, 8);
+            buf = printHex(buf, *stack++, 8);
             *buf++ = ' ';
             if(j == 3) *buf++ = ' ';
         }
@@ -167,13 +167,17 @@ void crashHook(u16 *framebuffer, OSThread *thread) {
         buf = printHex(buf, (u32)code, 8);
         *buf++ = ':';
         for(int j=0; j<8; j++) {
-            if((u32)code == thread->context.pc) *buf++ = '[';
-            else *buf++ = ' ';
+            *buf++ = ' ';
+            if((u32)code == thread->context.pc) {
+                buf = strAppend(buf, "\x1B[7m");
+            }
 
             buf = printHex(buf, *code, 8);
 
-            if((u32)code == thread->context.pc) *buf++ = ']';
-            else *buf++ = ' ';
+            if((u32)code == thread->context.pc) {
+                buf = strAppend(buf, "\x1B[0m");
+            }
+            //else *buf++ = ' ';
 
             if(j == 3) *buf++ = ' ';
             code++;

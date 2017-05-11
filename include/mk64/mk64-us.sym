@@ -344,6 +344,7 @@ characterPlace              = 0x8018CF81;
 player1_displayedPosition2  = 0x8018CF99;
 playerBalloons              = 0x8018D8C0;
 titleScreenDisplay          = 0x8018D9E0; /* u32, controls what gets shown */
+textColor                   = 0x8018E860; /* s8 */
 trophies                    = 0x8018ED10;
 titleScreenFlagSize         = 0x8018EDC4;
 debugMenuCursorPos          = 0x8018EDEF;
