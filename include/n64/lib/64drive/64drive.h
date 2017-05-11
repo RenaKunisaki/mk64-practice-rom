@@ -46,6 +46,8 @@ typedef enum {
 #define DPRINT_NUM_BUFFERS 16
 #define DPRINT_BUF_ADDR 0xB3000000
 
+extern int sdrv_isInit;
+
 int   sdrv_init();
 int   sdrv_isBusy();
 u32   sdrv_readReg(u32 addr);

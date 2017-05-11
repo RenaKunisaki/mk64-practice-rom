@@ -12,9 +12,12 @@ typedef struct {
 static dprint_buf_s *dprint_buf = (dprint_buf_s*)DPRINT_BUF_ADDR;
 static uint32_t dprint_next_serial = 0;
 
+int sdrv_isInit = 0;
 
 int sdrv_init() {
     //Initialize 64drive. return nonzero on success, zero on failure.
+    if(sdrv_isInit) return 1;
+
     u32 intMask = __osDisableInt();
     while(dma_busy() || sdrv_isBusy());
 
@@ -32,6 +35,7 @@ int sdrv_init() {
     }
     sdrv_setRomWritable(0);
     __osRestoreInt(intMask);
+    sdrv_isInit = 1;
     return 1;
 }
 
@@ -103,7 +107,7 @@ void sdrv_setByteswap(int enable) {
 
 u16 sdrv_isButtonPressed() {
     //Check if the button on the 64drive cartridge is pressed.
-    return sdrv_readReg(SDRV_REG_BUTTON) & 0xFFFF;
+    return !(sdrv_readReg(SDRV_REG_BUTTON) >> 16);
 }
 
 void sdrv_readSector(u32 sector) {
