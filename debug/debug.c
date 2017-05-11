@@ -2,6 +2,7 @@
 extern "C" {
 
 extern char* printHex(char *buf, u32 num, int nDigits);
+extern char* printNum(char *buf, u32 num);
 
 void debug_main_init() {
     //Called at boot once our code is loaded into RAM.
@@ -29,7 +30,8 @@ void doButton() {
 }
 
 void drawInputDisplay() {
-    static int xpos = 66, ypos = 32, w = 6, h = 6; //below lap counter
+    //static int xpos = 66, ypos = 32, w = 6, h = 6; //below lap counter
+    static int xpos = 24, ypos = 1, w = 6, h = 6; //above top 4
     static const char *names[] = {
         "A", "B", "Z", "S",
         NULL, NULL, NULL, NULL, //don't need to draw d-pad
@@ -91,6 +93,18 @@ void drawInputDisplay() {
     //XXX analog stick
 }
 
+void drawPlayerInfo(int which) {
+    Player *p = &player[which];
+    char text[64];
+
+    //draw coords
+    char *buf = text;
+    buf = printHex(buf, p->position.x, 4); *buf++ = ' ';
+    buf = printHex(buf, p->position.y, 4); *buf++ = ' ';
+    buf = printHex(buf, p->position.z, 4); *buf++ = 0;
+    debugPrintStr(170, 205, text);
+}
+
 void (*replaced)() = (void(*)())0x80093E20;
 void debugHook() {
     //called every frame
@@ -111,9 +125,10 @@ void debugHook() {
         // char *buf = text;
         // buf = printHex(buf, buttons, 4);
         // *buf = 0;
-        // debugLoadFont();
         // debugPrintStr(0, -16, text);
         drawInputDisplay();
+        debugLoadFont();
+        drawPlayerInfo(0);
     }
 
     //if 64drive button pressed, or L+R+Z pressed, toggle debug mode
