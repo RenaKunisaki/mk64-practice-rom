@@ -28,6 +28,8 @@ _InitControllers            = 0x800008A4;
 readControllers             = 0x80000A28;
 dmaCopy                     = 0x80001158;
 initGame                    = 0x80001264;
+menuMainLoop                = 0x80001404;
+gameMainLoop                = 0x8000142C;
 render_loop_case_67         = 0x80002118;
 render_loop_case_66         = 0x80002168;
 render_loop_case_65         = 0x80002284;
@@ -44,6 +46,7 @@ thread9_main                = 0x80004530;
 store_a0_at_80162D5C        = 0x800046AC;
 createDebugThread           = 0x800046B8;
 startDebugThread            = 0x80004718;
+drawRacePosition            = 0x800591B4; /* rank and top 4 */
 SetPlaces                   = 0x800067C4;
 
 ProcessPathData             = 0x800115F4;
@@ -72,6 +75,7 @@ PrintText1                  = 0x8009338C;
 DrawText                    = 0x800936EC; /* A0=X, A1=Y, A2=str, A3=pixels between each letter, SP[10]=float xscale, SP[14]=float yscae */
 textDrawPtr                 = 0x80093788;
 textDraw                    = 0x800939FC;
+drawPauseScreenIfPaused     = 0x80093E20;
 titleScreenUnk3E40          = 0x80093E40;
 titleScreenDraw             = 0x80095574;
 drawBox                     = 0x80098DF8;
@@ -358,6 +362,8 @@ cupSelectedInMenu           = 0x8018EE08; /* same as gpMode_currentRound */
 
 controllers                 = 0x80196504;
 
+creditsMainLoop             = 0x802802AC;
+trophySeqMainLoop           = 0x80281548;
 heapEnd                     = 0x8028DF00;
 
 loadSurfaceMap              = 0x80290DAC;
@@ -397,6 +403,7 @@ UpdateObjBananaBunch        = 0x802B0A28;
 UpdateObjTripleShell        = 0x802B0E98;
 UpdateObjBanana             = 0x802B2034;
 UpdateObjGreenShell         = 0x802B32C4;
+resetGame                   = 0x802A38B4; /* called if setToResetGame == 1 */
 UpdateObjRedBlueShell       = 0x802B4218;
 loadGiantEgg                = 0x802B529C;
 randInt                     = 0x802B7E34;

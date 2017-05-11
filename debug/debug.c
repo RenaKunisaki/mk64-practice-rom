@@ -15,7 +15,7 @@ void debug_main_init() {
     }
 
     //enable title screen debug menu by default
-    // *(u16*)0xA00B3F76 = 2;
+     *(u16*)0xA00B3F76 = 2;
 
     screenMode = 0; //not sure why it keeps defaulting to 2p
     numPlayers = 1;
@@ -28,7 +28,7 @@ void doButton() {
     debugMenuCursorPos = debugMode + 1;
 }
 
-void (*replaced)() = (void(*)())0x80001ECC;
+void (*replaced)() = (void(*)())0x80093E20;
 void debugHook() {
     //called every frame
     replaced();
@@ -37,13 +37,22 @@ void debugHook() {
     u16 debugBtns = L_TRIG | Z_TRIG;
 
     if(debugMode) {
-        //textSetColor(1);
-        //textDraw(30, 30, "HELLO", 8, 1.0f, 1.0f);
+        //we can draw here...
+        //dlistBuffer = drawBox(dlistBuffer,
+        //        29, 29, 60, 40, //x1, y1, x2, y2
+        //        128, 0, 0, 128); //r, g, b, a
+        //textSetColor(TEXT_TRANS1);
+        //textDraw(30, 30, "HELLO", 0, 1.0f, 1.0f);
+
+        char text[64];
+        char *buf = text;
+        buf = printHex(buf, buttons, 4);
+        *buf = 0;
         debugLoadFont();
-        debugPrintStr(0, 0, "now on DEBUG...");
+        debugPrintStr(0, -16, text);
     }
 
-    //if 64drive button pressed, or L+Z pressed, toggle debug mode
+    //if 64drive button pressed, or L+R+Z pressed, toggle debug mode
     if(/*(sdrv_isInit && sdrv_isButtonPressed())
     || */ (buttons & debugBtns) == debugBtns) {
         buttonCounter++; //debounce button

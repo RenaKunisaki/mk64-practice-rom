@@ -17,7 +17,8 @@ void textDraw(int x, int y, const char *str, int spacing,
 /** textDrawPtr() takes pointers to the coordinate variables and updates
  *  them to the coordinates of the next character after the string.
  *  xScale and yScale are used to stretch the text.
- *  spacing is how many pixels between letters.
+ *  spacing is how many additional pixels between letters; 0 = normal.
+ *  TEXT_TRANS1 and TEXT_TRANS2 fade between different colors each frame.
  */
 
 /* 800E86F4 "01", "NKTJ", debug text */
