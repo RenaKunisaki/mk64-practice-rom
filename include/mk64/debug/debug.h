@@ -14,11 +14,17 @@ void debugPrintNumber(int *x, int *y, int num, int base);
 void debugPrintStrNum(int x, int y, const char *str, int num);
 /** prints specified string followed by specified number (base 10, signed) */
 
-extern  s8  debugMenuCursorPos;
-extern  s16 debugCoordDisplay; //1=on, requires debug mode
-extern  s16 debugResourceMeters; //1=on, requires debug mode
+void debugFinishText();
+/** not sure what it does. called after printing debug menu.
+ *  adds "CallList 0D:007EB8" to current display list buffer.
+ */
+
+extern u16 debugMode; //1=on
+extern s8  debugMenuCursorPos; //2-7 to display debug menu
+extern s16 debugCoordDisplay; //1=on, requires debug mode
+extern s16 debugResourceMeters; //1=on, requires debug mode
 extern u16 crashScreenCodeButtons[10];
-extern  s16 crashScreenCodeEntryCounter;
+extern s16 crashScreenCodeEntryCounter;
 
 extern u8  debugFontMap[]; //array of ASCII -> debug font char index
 //XXX size

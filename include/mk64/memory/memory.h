@@ -3,6 +3,8 @@ void dmaCopy(void *dest, const void *src, unsigned int size);
 void mio0Decode(const void *src, void *dst);
 uint32_t mio0Encode(const void *src, u32 length, void *dst); //returns compressed size
 
+void clearNmiBuffer(); //clear RAM, 64 bytes at 0x8000031C
+
 extern void *heapEndPtr, *heapEnd;
 
 /* To make the heap occupy the Expansion Pak region,
