@@ -146,14 +146,13 @@ loader:
             sw    $t0, (next_free)
 
         checksrc$:
+        # if source is zero, clear dest
+        add   $a3, $a2 # get absolute entry point
         # use uncached destination so that it executes correctly.
         # otherwise code is stuck in dcache and not fetched.
         lui $at, 0x2000
-        or  $a2, $a2, $at
-
-        # if source is zero, clear dest
         beq   $a1, $zero, clear$
-            add   $a3, $a2 # get absolute entry point
+            or  $a2, $a2, $at
 
         # copy source to dest
         1:  # loop until all data is copied.
