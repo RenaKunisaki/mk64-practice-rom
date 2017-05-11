@@ -28,6 +28,65 @@ void doButton() {
     debugMenuCursorPos = debugMode + 1;
 }
 
+void drawInputDisplay() {
+    static int xpos = 66, ypos = 32, w = 6, h = 6; //below lap counter
+    static const char *names[] = {
+        "A", "B", "Z", "S",
+        NULL, NULL, NULL, NULL, //don't need to draw d-pad
+        NULL, NULL, //unused bits
+        "L", "R",
+        "U", "D", "L", "R" //C buttons
+    };
+    static const u8 colors[][3] = {
+        {  0, 128, 255}, //A: blue
+        {  0, 255,   0}, //B: green
+        {255, 255, 255}, //Z: white
+        {255,   0,   0}, //Start: red
+        {128, 128, 128}, {128, 128, 128}, //up, down
+        {128, 128, 128}, {128, 128, 128}, //left, right
+        {  0,   0,   0}, {  0,   0,   0}, //unused
+        {255, 255, 255}, {255, 255, 255}, //L, R
+        {255, 255,   0}, {255, 255,   0}, //C up, down
+        {255, 255,   0}, {255, 255,   0}  //C left, right
+    };
+    static const u8 coords[][2] = {
+        {1, 2}, //A
+        {0, 1}, //B
+        {0, 2}, //Z
+        {1, 0}, //start
+        {0, 0}, {0, 0}, {0, 0}, {0, 0}, //d-pad
+        {0, 0}, {0, 0}, //unused
+        {0, 0}, //L
+        {3, 0}, //R
+        {2, 0}, //C up
+        {2, 2}, //C down
+        {1, 1}, //C left
+        {3, 1}  //C right
+    };
+
+    u16 buttons = player1_controllerState.buttons;
+    u16 flag = 0x8000;
+    for(int i=0; i<16; i++) {
+        if(names[i]) {
+            int r = colors[i][0], g = colors[i][1], b = colors[i][2];
+            int a = (buttons & flag) ? 255 : 128;
+            int x = xpos + (coords[i][0] * w);
+            int y = ypos + (coords[i][1] * h);
+
+            dlistBuffer = drawBox(dlistBuffer,
+                x, y, x+w, y+h, //x1, y1, x2, y2
+                r, g, b, a); //r, g, b, a
+
+            //this is still glitchy.
+            //the text disappears sometimes and the pause menu breaks.
+            //textSetColor(TEXT_RED);
+            //textDraw(x + 10, y + 8, names[i], 0, 0.5f, 0.5f);
+        }
+        flag >>= 1;
+    }
+    //XXX analog stick
+}
+
 void (*replaced)() = (void(*)())0x80093E20;
 void debugHook() {
     //called every frame
@@ -44,12 +103,13 @@ void debugHook() {
         //textSetColor(TEXT_TRANS1);
         //textDraw(30, 30, "HELLO", 0, 1.0f, 1.0f);
 
-        char text[64];
-        char *buf = text;
-        buf = printHex(buf, buttons, 4);
-        *buf = 0;
-        debugLoadFont();
-        debugPrintStr(0, -16, text);
+        // char text[64];
+        // char *buf = text;
+        // buf = printHex(buf, buttons, 4);
+        // *buf = 0;
+        // debugLoadFont();
+        // debugPrintStr(0, -16, text);
+        drawInputDisplay();
     }
 
     //if 64drive button pressed, or L+R+Z pressed, toggle debug mode
