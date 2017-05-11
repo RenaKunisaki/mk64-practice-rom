@@ -38,7 +38,7 @@ void drawInputDisplay() {
         "U", "D", "L", "R" //C buttons
     };
     static const u8 colors[][3] = {
-        {  0, 128, 255}, //A: blue
+        {  0, 192, 255}, //A: blue
         {  0, 255,   0}, //B: green
         {255, 255, 255}, //Z: white
         {255,   0,   0}, //Start: red
@@ -63,6 +63,10 @@ void drawInputDisplay() {
         {1, 1}, //C left
         {3, 1}  //C right
     };
+
+    dlistBuffer = drawBox(dlistBuffer,
+        xpos, ypos, xpos+w*4, ypos+h*3, //x1, y1, x2, y2
+        0, 0, 0, 96); //r, g, b, a
 
     u16 buttons = player1_controllerState.buttons;
     u16 flag = 0x8000;
