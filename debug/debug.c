@@ -97,12 +97,49 @@ void drawPlayerInfo(int which) {
     Player *p = &player[which];
     char text[64];
 
+    static vec3f prevCoords;
+
     //draw coords
-    char *buf = text;
-    buf = printHex(buf, p->position.x, 4); *buf++ = ' ';
-    buf = printHex(buf, p->position.y, 4); *buf++ = ' ';
-    buf = printHex(buf, p->position.z, 4); *buf++ = 0;
-    debugPrintStr(170, 205, text);
+    #if 1
+        char *buf = text;
+        buf = printHex(buf, p->position.x, 4); *buf++ = ' ';
+        buf = printHex(buf, p->position.y, 4); *buf++ = ' ';
+        buf = printHex(buf, p->position.z, 4); *buf++ = 0;
+        debugPrintStr(170, 205, text);
+    #endif
+
+    //draw speed (XXX don't update if paused)
+    #if 1
+        float dx = p->position.x - prevCoords.x;
+        //float dy = p->position.y - prevCoords.y;
+        float dz = p->position.z - prevCoords.z;
+        float dxz = sqrtf((dx*dx) + (dz*dz));
+
+        //6.4 seems about the right scale for units -> km/h
+        buf = text;
+        buf = printNum(buf, dxz * 6.4f); *buf++ = 0;
+        debugPrintStr(250, 195, text);
+    #endif
+
+    //draw camera coords
+    #if 0
+        buf = text;
+        buf = printHex(buf, player1_cameraPos.x, 4); *buf++ = ' ';
+        buf = printHex(buf, player1_cameraPos.y, 4); *buf++ = ' ';
+        buf = printHex(buf, player1_cameraPos.z, 4); *buf++ = 0;
+        debugPrintStr(170, 195, text);
+    #endif
+
+    //draw race progress
+    #if 1
+        buf = text;
+        buf = printHex(buf, player1_raceProgress, 4); *buf++ = 0;
+        debugPrintStr(47, 13, text);
+    #endif
+
+    prevCoords.x = p->position.x;
+    prevCoords.y = p->position.y;
+    prevCoords.z = p->position.z;
 }
 
 void (*replaced)() = (void(*)())0x80093E20;
@@ -114,18 +151,6 @@ void debugHook() {
     u16 debugBtns = L_TRIG | Z_TRIG;
 
     if(debugMode) {
-        //we can draw here...
-        //dlistBuffer = drawBox(dlistBuffer,
-        //        29, 29, 60, 40, //x1, y1, x2, y2
-        //        128, 0, 0, 128); //r, g, b, a
-        //textSetColor(TEXT_TRANS1);
-        //textDraw(30, 30, "HELLO", 0, 1.0f, 1.0f);
-
-        // char text[64];
-        // char *buf = text;
-        // buf = printHex(buf, buttons, 4);
-        // *buf = 0;
-        // debugPrintStr(0, -16, text);
         drawInputDisplay();
         debugLoadFont();
         drawPlayerInfo(0);

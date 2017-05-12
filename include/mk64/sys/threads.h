@@ -1,0 +1,1 @@
+void updateThreadProfiles(int thread);
