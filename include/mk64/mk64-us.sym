@@ -73,7 +73,7 @@ genRandomItem               = 0x8007ADA8;
 textSetColor                = 0x800930D8;
 PrintText0                  = 0x80093134;
 PrintText1                  = 0x8009338C;
-DrawText                    = 0x800936EC; /* A0=X, A1=Y, A2=str, A3=pixels between each letter, SP[10]=float xscale, SP[14]=float yscae */
+DrawText                    = 0x800936EC; /* A0=X, A1=Y, A2=str, A3=pixels between each letter, SP[10]=float xscale, SP[14]=float yscale */
 textDrawPtr                 = 0x80093788;
 textDraw                    = 0x800939FC;
 drawPauseScreenIfPaused     = 0x80093E20;

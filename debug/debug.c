@@ -16,7 +16,7 @@ void debug_main_init() {
     }
 
     //enable title screen debug menu by default
-     *(u16*)0xA00B3F76 = 2;
+    // *(u16*)0xA00B3F76 = 2;
 
     screenMode = 0; //not sure why it keeps defaulting to 2p
     numPlayers = 1;
@@ -121,7 +121,7 @@ void drawPlayerInfo(int which) {
         debugPrintStr(250, 195, text);
     #endif
 
-    //draw camera coords
+    //draw camera coords (will overlap speed)
     #if 0
         buf = text;
         buf = printHex(buf, player1_cameraPos.x, 4); *buf++ = ' ';

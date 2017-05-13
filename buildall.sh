@@ -4,3 +4,4 @@ set -e
 ./build.sh lib
 ./build.sh crash-handler
 ./build.sh debug
+./build.sh new-menu

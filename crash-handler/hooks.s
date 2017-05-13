@@ -54,7 +54,7 @@ titleHook_base:
     sw    $a2, 0x0C($t1)
     sw    $a3, 0x10($t1)
 
-    jal   titleHook
+    jal   crash_titleHook
       move $a1, $s0
 
     lui   $t1, %hi(RAM_BASE)

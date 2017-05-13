@@ -13,6 +13,12 @@ void textDrawPtr(int *x, int *y, const char *str, int spacing,
     float xScale, float yScale);
 void textDraw(int x, int y, const char *str, int spacing,
     float xScale, float yScale);
+void DrawText(int x, int y, const char *str, int spacing,
+    float xScale, float yScale);
+void PrintText0(int x, int y, const char *str, int spacing,
+    float xScale, float yScale);
+void PrintText1(int x, int y, const char *str, int spacing,
+    float xScale, float yScale);
 
 /** textDrawPtr() takes pointers to the coordinate variables and updates
  *  them to the coordinates of the next character after the string.
