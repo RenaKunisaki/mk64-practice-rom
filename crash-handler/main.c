@@ -173,10 +173,11 @@ void drawCrashScreen(u16 *framebuffer, OSThread *thread) {
     buf = printHex (buf, thread->context.badvaddr, 8);
     buf = strAppend(buf, " RC:");
     buf = printHex (buf, thread->context.rcp, 8);
+    buf = strAppend(buf, " OP:");
     if(thread->context.pc >= 0x80000000 && thread->context.pc <= 0x807FFFFC) {
-        buf = strAppend(buf, " OP:");
         buf = printHex (buf, *(u32*)(thread->context.pc & ~3), 8);
     }
+    else buf = strAppend(buf, "--------");
     buf = strAppend(buf, "\n");
     print_fbuf(framebuffer, text); buf = text;
 
