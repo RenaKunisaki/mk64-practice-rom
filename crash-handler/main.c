@@ -6,6 +6,8 @@ extern char* printHex(char *buf, u32 num, int nDigits);
 extern char* printNum(char *buf, u32 num);
 extern OSThread *currentThread;
 
+#include "font.inc"
+
 
 void crash_main_init() {
     //Called at boot once our code is loaded into RAM.
@@ -109,8 +111,111 @@ static const char *causes[] = {
     "error 31",
 };
 
+
+void drawChar(u16 *framebuffer, u16 X, u16 Y, char c) {
+    u32 fx = (c & 0xF) * 8;
+    u32 fy = (c >>  4) * 8;
+
+    for(int cy=0; cy<8; cy++) {
+        for(int cx=0; cx<8; cx++) {
+            u32 idx = ((fy+cy) * 128) + (fx+cx);
+            u8 *src = (u8*)&ibmfont.pixel_data[idx / 8];
+            u8 mask = *src & (0x80 >> cx);
+            u16 col = mask ? 0xFFFF : 0x0001;
+            framebuffer[((Y+cy) * 320) + X+cx] = col;
+        }
+    }
+}
+
+
+static u16 _print_X, _print_Y, _print_startX; //XXX make static vars work right
+
+static void print_fbuf(u16 *framebuffer, const char *text) {
+    for(int i=0; text[i]; i++) {
+        char c = text[i];
+        if(c == '\n') {
+            _print_X = _print_startX;
+            _print_Y += 8;
+        }
+        else {
+            drawChar(framebuffer, _print_X, _print_Y, c);
+            _print_X += 8;
+        }
+        if(_print_X >= 320 - 8) {
+            _print_X = _print_startX;
+            _print_Y += 8;
+        }
+        if(_print_Y >= 240 - 8) _print_Y = 0;
+    }
+}
+
+
+void drawCrashScreen(u16 *framebuffer, OSThread *thread) {
+    _print_X = 20;
+    _print_Y = 20;
+    _print_startX = _print_X;
+
+    char text[2048];
+    char *buf = text;
+    buf = strAppend(buf, "FATAL ERROR - THREAD ");
+    buf = printNum (buf, thread->id); *buf++ = '\n';
+    buf = strAppend(buf, causes[(thread->context.cause >> 2) & 0x1F]);
+    *buf++ = '\n';
+    print_fbuf(framebuffer, text); buf = text;
+
+    buf = strAppend(buf, "PC:");
+    buf = printHex (buf, thread->context.pc, 8);
+    buf = strAppend(buf, " SR:");
+    buf = printHex (buf, thread->context.sr, 8);
+    buf = strAppend(buf, " CR:");
+    buf = printHex (buf, thread->context.cause, 8);
+    buf = strAppend(buf, "\nVA:");
+    buf = printHex (buf, thread->context.badvaddr, 8);
+    buf = strAppend(buf, " RC:");
+    buf = printHex (buf, thread->context.rcp, 8);
+    if(thread->context.pc >= 0x80000000 && thread->context.pc <= 0x807FFFFC) {
+        buf = strAppend(buf, " OP:");
+        buf = printHex (buf, *(u32*)(thread->context.pc & ~3), 8);
+    }
+    buf = strAppend(buf, "\n");
+    print_fbuf(framebuffer, text); buf = text;
+
+    u32 *reg = (u32*)&thread->context.at;
+    buf = text;
+    for(int i=0; regName[i]; i++) {
+        buf = strAppend(text, regName[i]); *buf++ = ':';
+        reg++; //skip high word
+        buf = printHex (buf, *reg++, 8);
+        buf = strAppend(buf, ((i % 3) == 2) ? "\n" : " ");
+        print_fbuf(framebuffer, text);
+    }
+
+    extern int mainThreadTask, mainThreadPrevTask, mainThreadSubTask;
+
+    buf = text;
+    buf = strAppend(buf, "HE:"); buf = printHex (buf, (u32)heapEndPtr, 8);
+    buf = strAppend(buf, " HS:");
+    buf = printHex (buf, (u32)&heapEnd - (u32)heapEndPtr, 8);
+    buf = strAppend(buf, " MT:"); buf = printHex (buf, mainThreadTask, 8);
+    buf = strAppend(buf, " PT:"); buf = printHex (buf, mainThreadPrevTask, 8);
+    buf = strAppend(buf, " ST:"); buf = printHex (buf, mainThreadSubTask, 8);
+    buf = strAppend(buf, "\nSM:");buf = printHex (buf, screenMode, 8);
+    buf = strAppend(buf, " RT:"); buf = printHex (buf, raceType, 8);
+    buf = strAppend(buf, " TN:"); buf = printHex (buf, curCourse, 8);
+    buf = strAppend(buf, "\nNP:");buf = printHex (buf, numPlayers, 8);
+
+    print_fbuf(framebuffer, text);
+}
+
+extern void osWriteBackDCacheAll();
+
 void crashHook(u16 *framebuffer, OSThread *thread) {
     //called when a thread crashes.
+
+    //memset(framebuffer, 0x8888, 320*240*2);
+    drawCrashScreen(framebuffer, thread);
+    osWriteBackDCacheAll();
+
     char text[512] __attribute__ ((aligned (16)));
     char *buf = text;
     buf = strAppend(buf, "\r\n *** Crash in thread ");

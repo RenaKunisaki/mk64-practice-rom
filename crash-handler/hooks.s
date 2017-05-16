@@ -101,7 +101,6 @@ crashHook_base:
     sw    $a3, 0x10($t1)
 
     jal   crashHook
-      #move $a1, $s0
       nop
 
     lui   $t1, %hi(RAM_BASE)
@@ -110,5 +109,6 @@ crashHook_base:
     lw    $a0, 0x04($t1)
     lw    $a1, 0x08($t1)
     lw    $a2, 0x0C($t1)
-    j     0x80004298
+    #j     0x80004298
+    jr $ra
       lw    $a3, 0x10($t1)
