@@ -7,7 +7,8 @@ extern char* printNum(char *buf, u32 num);
 void debug_main_init() {
     //Called at boot once our code is loaded into RAM.
 
-    //patch display list debug to show in corner of screen
+    //patch display list debug to show in corner of screen.
+    //these addresses are part of the instructions that set the text position.
     u32 xpos[] = {0xA00016FA, 0xA00016CE, 0xA0001662, 0xA0001726, 0xA0001732};
     u32 ypos[] = {0xA0001706, 0xA00016DA, 0xA00016B2, 0xA0001752, 0xA0001736};
     for(int i=0; i<5; i++) {
@@ -23,6 +24,8 @@ void debug_main_init() {
 }
 
 void doButton() {
+    //called when the debug button is pressed. (either the button on the
+    //6drive cartridge of the controller combo.)
     debugMode ^= 1;
     debugCoordDisplay = 1;
     debugResourceMeters = 1;

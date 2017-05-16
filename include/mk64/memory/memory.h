@@ -1,7 +1,7 @@
-void dmaCopy(void *dest, const void *src, unsigned int size);
+void dmaCopy(void *dest, const void *src, u32 size);
 //void bcopy(const void *src, void *dst, int size);
 void mio0Decode(const void *src, void *dst);
-uint32_t mio0Encode(const void *src, u32 length, void *dst); //returns compressed size
+u32 mio0Encode(const void *src, u32 length, void *dst); //returns compressed size
 
 void clearNmiBuffer(); //clear RAM, 64 bytes at 0x8000031C
 

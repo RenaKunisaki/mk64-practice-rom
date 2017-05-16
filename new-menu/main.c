@@ -4,23 +4,20 @@ extern "C" {
 extern char* strAppend(char *dest, const char *src);
 extern char* printHex(char *buf, u32 num, int nDigits);
 extern char* printNum(char *buf, u32 num);
-extern int raceType, curCourse, numPlayers, screenMode, isHudEnabled, mainThreadTask;
+extern int raceType, numPlayers, screenMode, isHudEnabled, mainThreadTask;
 
 void title_main_init() {
+    //Called at boot once our code is loaded into RAM.
 }
 
 
-static int optSelected = 0;
-static int optPlayers = 0;
-static int optCharacter = 0;
-static int optMirror = 0;
-static int optDebug = 0;
+static int optSelected = 0; //currently selected menu option
 
 static const char *onOff[] = {"Off", "On"};
 static const char *raceModes[] = {"Mario GP", "Time Trial", "VS", "Battle"};
 static const char *courseNames[] = {
     "Mario Raceway", "Choco Mountain", "Bowser's Castle",
-    "Banshee Boardwalk", "Yoshi Valley", "Frappe Snowland",
+    "Banshee Brdwlk", "Yoshi Valley", "Frappe Snowland",
     "Koopa Beach", "Royal Raceway", "Luigi Raceway",
     "Moo Moo Farm", "Toad's Turnpike", "Kalimari Desert",
     "Sherbet Land", "Rainbow Road", "Wario Stadium",
@@ -29,32 +26,52 @@ static const char *courseNames[] = {
 };
 static const char *playerNames[] = {"1", "2 Up-Down", "2 Left-Right", "3", "4"};
 static const char *characterNames[] = {
-    "Mario", "1", "2", "3", "4", "5", "6", "7"
+    "Mario", "Luigi", "Yoshi", "Toad", "DK", "Wario", "Peach", "Bowser"
 };
-static const char *classNames[] = {"50(", "100(", "150("};
+static const char *classNames[] = {"50(", "100(", "150(", "Extra"};// '(' = "cc"
 
 static struct {
     int min, max;
-    int *value;
+    int value;
     const char *text;
     const char **names;
 } options[] = {
-    {0,  3, &raceType, "Race Mode", raceModes},
-    {0, 19, &curCourse, "Course", courseNames}, //XXX doesn't work
-    {0,  4, &optPlayers, "Players", playerNames}, //XXX 3-4p crashes
-    {0,  7, &optCharacter, "Driver", characterNames}, //XXX doesn't work
-    {0,  1, &raceType, "Class", classNames}, //XXX
-    {0,  1, &optMirror, "Mirror Mode", onOff},
-    {0,  1, &optDebug, "Items", onOff}, //XXX (patch item box function?)
-    {0,  1, &optDebug, "Music", onOff}, //XXX
-    {0,  1, &optDebug, "Debug Mode", onOff},
+    {0,  3, 0, "Race Mode",   raceModes},
+    {0, 19, 0, "Course",      courseNames},
+    {0,  4, 0, "Players",     playerNames}, //XXX 3-4p crashes
+    {0,  7, 0, "Player 1",    characterNames},
+    {0,  7, 1, "Player 2",    characterNames},
+    {0,  7, 2, "Player 3",    characterNames},
+    {0,  7, 3, "Player 4",    characterNames},
+    {0,  3, 0, "Class",       classNames}, //XXX
+    {0,  1, 0, "Mirror Mode", onOff},
+    {0,  1, 0, "Items",       onOff}, //XXX (patch item box function?)
+    {0,  1, 0, "Music",       onOff}, //XXX
+    {0,  1, 0, "Debug Mode",  onOff},
     //XXX other settings from that competition hack
     //L to reset/quit
     {0,  0, NULL, NULL, NULL}
 };
 
+enum {
+    OPT_RACE_MODE = 0, //works
+    OPT_COURSE, //only works in TT; pause screen shows Luigi Raceway
+    OPT_PLAYERS, //works but 3p/4p crashes
+    OPT_DRIVER1, //works
+    OPT_DRIVER2,
+    OPT_DRIVER3,
+    OPT_DRIVER4,
+    OPT_CLASS, //works
+    OPT_MIRROR, //works
+    OPT_ITEMS, //not implemented (need to patch item box loader)
+    OPT_MUSIC, //not implemented
+    OPT_DEBUG, //works
+    NUM_OPTIONS
+};
+
 
 static void drawTitle() {
+    //draw our nice new title at the top of the screen.
     static int xpos = 0, ypos = 0, width = 320, height = 240;
     dlistBuffer = drawBox(dlistBuffer,
         xpos, ypos, xpos+width, ypos+height, //x1, y1, x2, y2
@@ -73,20 +90,15 @@ static void drawTitle() {
     textDraw(110, 29, "Practice ROM v1.0", 0, 0.5f, 0.5f);
 }
 
-void title_menu_draw() {
-    drawTitle();
 
-    optCharacter = player1_character; //needs to be int, not s16
-    optMirror    = isMirrorMode;
-    optDebug     = debugMode;
-
+static void drawMenu() {
     //int x=30, y=48;
-    int x=30, y=100;
-    for(int i=0; options[i].value; i++) {
+    int x=30, y=60;
+    for(int i=0; options[i].text; i++) {
         textSetColor(i == optSelected ? TEXT_TRANS2 : TEXT_GREEN);
         textDraw(x, y, options[i].text, 1, 0.8f, 0.8f);
 
-        int val = *options[i].value;
+        int val = options[i].value;
         if(options[i].names) {
             textDraw(x+130, y, options[i].names[val], 1, 0.8f, 0.8f);
         }
@@ -98,79 +110,100 @@ void title_menu_draw() {
 
         y += 13;
     }
+}
 
-    //debugLoadFont();
-    //debugPrintStr(10, 10, "butts");
 
+static void startTheGame() {
+    //set numPlayers and screenMode
+    switch(options[OPT_PLAYERS].value) {
+        case 0: numPlayers = 1; screenMode = SCREEN_MODE_1P;      break;
+        case 1: numPlayers = 2; screenMode = SCREEN_MODE_2P_HORZ; break;
+        case 2: numPlayers = 2; screenMode = SCREEN_MODE_2P_VERT; break;
+        case 3: numPlayers = 3; screenMode = SCREEN_MODE_4P;      break;
+        case 4: numPlayers = 4; screenMode = SCREEN_MODE_4P;      break;
+    }
+
+    //set other game parameters
+    //screenSplitMode     = screenMode;
+    raceType            = options[OPT_RACE_MODE].value;
+    curCourse           = options[OPT_COURSE   ].value;
+    playerCharacter[0]  = options[OPT_DRIVER1  ].value;
+    playerCharacter[1]  = options[OPT_DRIVER2  ].value;
+    playerCharacter[2]  = options[OPT_DRIVER3  ].value;
+    playerCharacter[3]  = options[OPT_DRIVER4  ].value;
+    raceClass           = options[OPT_CLASS    ].value;
+    isMirrorMode        = options[OPT_MIRROR   ].value;
+    //XXX items, music
+    debugMode           = options[OPT_DEBUG    ].value;
+    debugCoordDisplay   = debugMode;
+    debugResourceMeters = debugMode;
+
+    //gpMode_currentCup   = 2;
+    //gpMode_currentRound = 2;
+
+    mainThreadTask      = 4; //start game
+}
+
+
+static void doButtons() {
+    /* libultra names
+     * 8000 A_BUTTON      0080 unused
+     * 4000 B_BUTTON      0040 unused
+     * 2000 Z_TRIG        0020 L_TRIG
+     * 1000 START_BUTTON  0010 R_TRIG
+     * 0800 U_JPAD        0008 U_CBUTTONS
+     * 0400 D_JPAD        0004 D_CBUTTONS
+     * 0200 L_JPAD        0002 L_CBUTTONS
+     * 0100 R_JPAD        0001 R_CBUTTONS
+     */
     static u16 prevButtons = 0;
     u16 curButtons = player1_controllerState.buttons;
     u16 buttons = curButtons & ~prevButtons;
 
+    if(buttons & Z_TRIG) {
+        (*(u32*)0xDEADBEEF) = 0xFFFFFFFF; //crash the game to test crash handler
+        asm volatile("syscall"); //for nemu
+    }
     if(buttons & L_JPAD) {
-        int val = *options[optSelected].value;
-        if(--val < options[optSelected].min)
-            val = options[optSelected].max;
-        *options[optSelected].value = val;
+        if(--options[optSelected].value < options[optSelected].min)
+            options[optSelected].value = options[optSelected].max;
     }
     if(buttons & R_JPAD) {
-        int val = *options[optSelected].value;
-        if(++val > options[optSelected].max)
-            val = options[optSelected].min;
-        *options[optSelected].value = val;
+        if(++options[optSelected].value > options[optSelected].max)
+            options[optSelected].value = options[optSelected].min;
     }
     if(buttons & U_JPAD) {
         optSelected--;
-        if(optSelected < 0) {
-            while(options[optSelected+1].value) optSelected++;
-        }
+        if(optSelected < 0) optSelected = NUM_OPTIONS - 1;
     }
     if(buttons & D_JPAD) {
         optSelected++;
-        if(!options[optSelected].value) optSelected = 0;
+        if(optSelected >= NUM_OPTIONS) optSelected = 0;
     }
-
-    player1_character   = optCharacter;
-    isMirrorMode        = optMirror;
-    debugMode           = optDebug;
-    debugCoordDisplay   = optDebug;
-    debugResourceMeters = optDebug;
-
-    if(buttons & START_BUTTON) {
-        switch(optPlayers) {
-            case 0: numPlayers = 1; screenMode = 0; break; //1p
-            case 1: numPlayers = 2; screenMode = 1; break; //2p up/down
-            case 2: numPlayers = 2; screenMode = 2; break; //2p left/right
-            case 3: numPlayers = 3; screenMode = 3; break; //3p
-            case 4: numPlayers = 4; screenMode = 3; break; //4p
-        }
-        mainThreadTask = 4; //start game
-    }
+    if(buttons & START_BUTTON) startTheGame();
 
     prevButtons = curButtons;
 }
 
-/*
-8000 A_BUTTON      0080 unused
-4000 B_BUTTON      0040 unused
-2000 Z_TRIG        0020 L_TRIG
-1000 START_BUTTON  0010 R_TRIG
-0800 U_JPAD        0008 U_CBUTTONS
-0400 D_JPAD        0004 D_CBUTTONS
-0200 L_JPAD        0002 L_CBUTTONS
-0100 R_JPAD        0001 R_CBUTTONS
-*/
-
 
 void menu_titleHook() {
+    //called when the title screen is being drawn.
+
     //HACK: disable waving flag because it prevents our text from appearing.
     (*(u32*)0x8018DA30) = 0;
 
     //disable flashing "press start" text
     (*(u32*)0x8018DA58) = 0;
 
-    titleScreenDraw();
-    title_menu_draw();
+    //prevent demo from starting
     titleDemoCounter = -999999999;
+
+    titleScreenDraw(); //draw the original title screen
+    drawTitle(); //draw our menu title
+    drawMenu(); //draw the menu
+    //debugLoadFont();
+    //debugPrintStr(10, 10, "butts");
+    doButtons(); //handle buttons
 }
 
 

@@ -1,6 +1,5 @@
-extern  int     numPlayers;
+extern  int numPlayers;
 extern  s16 numPlayers2; //XXX verify size
-extern  int     gameMode;
 
 /* 800F3A00 thread ID? */
 /* 800F3A20 thread PCs? */
