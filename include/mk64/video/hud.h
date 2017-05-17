@@ -5,3 +5,5 @@ u32* drawBox(u32 *buf, int x1, int y1, int x2, int y2,
  * returns new display list address which must be written to 0x80150298.
  * r, g, b, a are uint32_t but values are 0 to 255.
  */
+
+extern int isHudEnabled;

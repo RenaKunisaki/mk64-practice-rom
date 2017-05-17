@@ -485,6 +485,7 @@ typedef struct { //3544 bytes (0xDD8)
    u32 unk_DD0, unk_DD4;
 } Player;
 extern Player player[NUM_RACERS];
+extern int numPlayers;
 
 extern s8 playerCharacter[MAX_PLAYERS];
 extern int player1_underwater;

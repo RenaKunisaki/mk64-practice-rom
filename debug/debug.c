@@ -124,7 +124,7 @@ void drawPlayerInfo(int which) {
         debugPrintStr(250, 195, text);
     #endif
 
-    //draw camera coords (will overlap speed)
+        //draw camera coords (will overlap speed)
     #if 0
         buf = text;
         buf = printHex(buf, player1_cameraPos.x, 4); *buf++ = ' ';
@@ -133,7 +133,7 @@ void drawPlayerInfo(int which) {
         debugPrintStr(170, 195, text);
     #endif
 
-    //draw race progress
+        //draw race progress
     #if 1
         buf = text;
         buf = printHex(buf, player1_raceProgress, 4); *buf++ = 0;
@@ -145,9 +145,8 @@ void drawPlayerInfo(int which) {
     prevCoords.z = p->position.z;
 }
 
-void (*replaced)() = (void(*)())0x80093E20;
-void debugHook() {
-    //called every frame
+void (*replaced)() = (void (*)()) 0x80093E20;
+void debugHook() { //called every frame
     replaced();
     static int buttonCounter = 0;
     u16 buttons = player1_controllerState.buttons;
@@ -161,7 +160,7 @@ void debugHook() {
 
     //if 64drive button pressed, or L+R+Z pressed, toggle debug mode
     if(/*(sdrv_isInit && sdrv_isButtonPressed())
-    || */ (buttons & debugBtns) == debugBtns) {
+    || */(buttons & debugBtns) == debugBtns) {
         buttonCounter++; //debounce button
         if(buttonCounter == 4) doButton();
     }

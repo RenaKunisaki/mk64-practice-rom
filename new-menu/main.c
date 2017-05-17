@@ -4,7 +4,6 @@ extern "C" {
 extern char* strAppend(char *dest, const char *src);
 extern char* printHex(char *buf, u32 num, int nDigits);
 extern char* printNum(char *buf, u32 num);
-extern int raceType, numPlayers, screenMode, isHudEnabled, mainThreadTask;
 
 void title_main_init() {
     //Called at boot once our code is loaded into RAM.
@@ -16,13 +15,13 @@ static int optSelected = 0; //currently selected menu option
 static const char *onOff[] = {"Off", "On"};
 static const char *raceModes[] = {"Mario GP", "Time Trial", "VS", "Battle"};
 static const char *courseNames[] = {
-    "Mario Raceway", "Choco Mountain", "Bowser's Castle",
-    "Banshee Brdwlk", "Yoshi Valley", "Frappe Snowland",
-    "Koopa Beach", "Royal Raceway", "Luigi Raceway",
-    "Moo Moo Farm", "Toad's Turnpike", "Kalimari Desert",
-    "Sherbet Land", "Rainbow Road", "Wario Stadium",
-    "Block Fort", "Skyscraper", "Double Deck",
-    "DK Jungle", "Big Donut",
+    "Mario Raceway",  "Choco Mountain",  "Bowser's Castle",
+    "Banshee Brdwlk", "Yoshi Valley",    "Frappe Snowland",
+    "Koopa Beach",    "Royal Raceway",   "Luigi Raceway",
+    "Moo Moo Farm",   "Toad's Turnpike", "Kalimari Desert",
+    "Sherbet Land",   "Rainbow Road",    "Wario Stadium",
+    "Block Fort",     "Skyscraper",      "Double Deck",
+    "DK Jungle",      "Big Donut",
 };
 static const char *playerNames[] = {"1", "2 Up-Down", "2 Left-Right", "3", "4"};
 static const char *characterNames[] = {
@@ -43,7 +42,7 @@ static struct {
     {0,  7, 1, "Player 2",    characterNames},
     {0,  7, 2, "Player 3",    characterNames},
     {0,  7, 3, "Player 4",    characterNames},
-    {0,  3, 0, "Class",       classNames}, //XXX
+    {0,  3, 0, "Class",       classNames},
     {0,  1, 0, "Mirror Mode", onOff},
     {0,  1, 0, "Items",       onOff}, //XXX (patch item box function?)
     {0,  1, 0, "Music",       onOff}, //XXX
@@ -92,6 +91,7 @@ static void drawTitle() {
 
 
 static void drawMenu() {
+    //draw the actual menu
     //int x=30, y=48;
     int x=30, y=60;
     for(int i=0; options[i].text; i++) {
@@ -114,6 +114,7 @@ static void drawMenu() {
 
 
 static void startTheGame() {
+    //start the game using our current settings
     //set numPlayers and screenMode
     switch(options[OPT_PLAYERS].value) {
         case 0: numPlayers = 1; screenMode = SCREEN_MODE_1P;      break;
@@ -146,6 +147,7 @@ static void startTheGame() {
 
 
 static void doButtons() {
+    //handle button presses
     /* libultra names
      * 8000 A_BUTTON      0080 unused
      * 4000 B_BUTTON      0040 unused

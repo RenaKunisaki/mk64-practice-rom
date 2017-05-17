@@ -5,6 +5,9 @@ u32 mio0Encode(const void *src, u32 length, void *dst); //returns compressed siz
 
 void clearNmiBuffer(); //clear RAM, 64 bytes at 0x8000031C
 
+//not sure why this isn't in ultra64
+extern void osWriteBackDCacheAll();
+
 extern void *heapEndPtr, *heapEnd;
 
 /* To make the heap occupy the Expansion Pak region,

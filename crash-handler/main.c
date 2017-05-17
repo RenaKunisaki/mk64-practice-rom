@@ -4,7 +4,6 @@ extern "C" {
 extern char* strAppend(char *dest, const char *src);
 extern char* printHex(char *buf, u32 num, int nDigits);
 extern char* printNum(char *buf, u32 num);
-extern OSThread *currentThread;
 
 #include "font.inc"
 
@@ -191,8 +190,6 @@ void drawCrashScreen(u16 *framebuffer, OSThread *thread) {
         print_fbuf(framebuffer, text);
     }
 
-    extern int mainThreadTask, mainThreadPrevTask, mainThreadSubTask;
-
     buf = text;
     buf = strAppend(buf, "HE:"); buf = printHex (buf, (u32)heapEndPtr, 8);
     buf = strAppend(buf, " HS:");
@@ -207,8 +204,6 @@ void drawCrashScreen(u16 *framebuffer, OSThread *thread) {
 
     print_fbuf(framebuffer, text);
 }
-
-extern void osWriteBackDCacheAll();
 
 void crashHook(u16 *framebuffer, OSThread *thread) {
     //called when a thread crashes.

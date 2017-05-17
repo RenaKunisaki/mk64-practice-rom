@@ -29,6 +29,7 @@ extern "C" {
 #include "memory/rsp.h"
 #include "menus/menus.h"
 #include "menus/text.h"
+#include "sys/threads.h"
 #include "video/camera.h"
 #include "video/gfx.h"
 #include "video/hud.h"
