@@ -115,6 +115,8 @@ static void drawMenu() {
 
 static void startTheGame() {
     //start the game using our current settings
+    soundPlay2(SND_MENU_ACCEPT);
+
     //set numPlayers and screenMode
     switch(options[OPT_PLAYERS].value) {
         case 0: numPlayers = 1; screenMode = SCREEN_MODE_1P;      break;
@@ -169,18 +171,22 @@ static void doButtons() {
     if(buttons & L_JPAD) {
         if(--options[optSelected].value < options[optSelected].min)
             options[optSelected].value = options[optSelected].max;
+        soundPlay2(SND_CURSOR_MOVE);
     }
     if(buttons & R_JPAD) {
         if(++options[optSelected].value > options[optSelected].max)
             options[optSelected].value = options[optSelected].min;
+        soundPlay2(SND_CURSOR_MOVE);
     }
     if(buttons & U_JPAD) {
         optSelected--;
         if(optSelected < 0) optSelected = NUM_OPTIONS - 1;
+        soundPlay2(SND_CURSOR_MOVE);
     }
     if(buttons & D_JPAD) {
         optSelected++;
         if(optSelected >= NUM_OPTIONS) optSelected = 0;
+        soundPlay2(SND_CURSOR_MOVE);
     }
     if(buttons & START_BUTTON) startTheGame();
 
@@ -198,7 +204,8 @@ void menu_titleHook() {
     (*(u32*)0x8018DA58) = 0;
 
     //prevent demo from starting
-    titleDemoCounter = -999999999;
+    //let it reach at least 4 to play the "welcome to Mario Kart" sound
+    if(titleDemoCounter > 4) titleDemoCounter = 4;
 
     titleScreenDraw(); //draw the original title screen
     drawTitle(); //draw our menu title
