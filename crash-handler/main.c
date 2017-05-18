@@ -246,6 +246,33 @@ void crashHook(u16 *framebuffer, OSThread *thread) {
         sdrv_dprint(text);
     }
 
+    buf = text;
+    buf = strAppend(buf, "\r\nHeap: ");
+    buf = printHex (buf, (u32)heapEndPtr, 8);
+    buf = strAppend(buf, "; size: ");
+    buf = printHex (buf, (u32)&heapEnd - (u32)heapEndPtr, 8);
+    sdrv_dprint(text);
+
+    buf = text;
+    buf = strAppend(buf, "\r\nMain thread task: ");
+    buf = printHex (buf, mainThreadTask, 4);
+    buf = strAppend(buf, ", prev: ");
+    buf = printHex (buf, mainThreadPrevTask, 4);
+    buf = strAppend(buf, ", sub: ");
+    buf = printHex (buf, mainThreadSubTask, 4);
+    sdrv_dprint(text);
+
+    buf = text;
+    buf = strAppend(buf, "\r\nScreen mode: ");
+    buf = printHex (buf, screenMode, 1);
+    buf = strAppend(buf, "; race mode: ");
+    buf = printHex (buf, raceType, 1);
+    buf = strAppend(buf, "; course: ");
+    buf = printHex (buf, curCourse, 2);
+    buf = strAppend(buf, "; players: ");
+    buf = printHex (buf, numPlayers, 1);
+    sdrv_dprint(text);
+
     sdrv_dprint("\r\nStack:\r\n");
     u32 *stack = (u32*)thread->context.sp;
     for(int i=0; i<256; i += 8) {
