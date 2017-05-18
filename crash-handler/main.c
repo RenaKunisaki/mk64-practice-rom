@@ -4,6 +4,9 @@ extern "C" {
 extern char* strAppend(char *dest, const char *src);
 extern char* printHex(char *buf, u32 num, int nDigits);
 extern char* printNum(char *buf, u32 num);
+extern char* printNumPadded(char *buf, u32 num, int nDigits);
+extern char* printFloat(char *buf, float num, int nChars);
+extern char* printDouble(char *buf, double num, int nChars);
 
 #include "font.inc"
 
@@ -26,9 +29,8 @@ void crash_main_init() {
 
         buf = strAppend(buf, ", FW ");
         u32 ver = sdrv_getVersion() & 0xFFFF;
-        buf = printHex(buf, (ver / 100), 1);
-        *buf++ = '.';
-        buf = printHex(buf, (ver % 100), 2);
+        buf = printNum(buf, ver / 100); *buf++ = '.';
+        buf = printNumPadded(buf, ver % 100, 2);
         //buf = printHex(buf, ver, 8);
 
         buf = strAppend(buf, ", mem: ");
@@ -115,7 +117,7 @@ static const char *causes[] = {
 };
 
 
-void drawChar(u16 X, u16 Y, char c) {
+void drawChar(u16 X, u16 Y, char c, u16 col) {
     u32 fx = (c & 0xF) * 8;
     u32 fy = (c >>  4) * 8;
 
@@ -124,16 +126,16 @@ void drawChar(u16 X, u16 Y, char c) {
             u32 idx = ((fy+cy) * 128) + (fx+cx);
             u8 *src = (u8*)&ibmfont.pixel_data[idx / 8];
             u8 mask = *src & (0x80 >> cx);
-            u16 col = mask ? 0xFFFF : 0x0021;
-            framebuffer[((Y+cy) * 320) + X+cx] = col;
+            framebuffer[((Y+cy) * 320) + X+cx] = (mask ? col : RGB16(0, 0, 15));
         }
     }
+    //osWriteBackDCacheAll();
 }
 
 
 static u16 _print_X, _print_Y, _print_startX; //XXX make static vars work right
 
-static void print_fbuf(const char *text) {
+static void print_fbuf(const char *text, u16 col) {
     for(int i=0; text[i]; i++) {
         char c = text[i];
         if(c == '\n') {
@@ -141,7 +143,7 @@ static void print_fbuf(const char *text) {
             _print_Y += 8;
         }
         else {
-            drawChar(_print_X, _print_Y, c);
+            drawChar(_print_X, _print_Y, c, col);
             _print_X += 8;
         }
         if(_print_X >= 320 - 8) {
@@ -150,6 +152,22 @@ static void print_fbuf(const char *text) {
         }
         if(_print_Y >= 240 - 8) _print_Y = 0;
     }
+}
+
+
+static void printReg(const char *name, u32 val) {
+    u16 col = RGB16(24, 24, 24);
+    if(val == 0          || val == 0xFFFFFFFF) col = RGB16(15, 15, 15);
+    if(val >= 0x80000000 && val <  0x80800000) col = RGB16(31, 31, 31);
+
+    char text[2048];
+    char *buf = text;
+    buf = strAppend(buf, name); *buf++ = ':';
+    buf = printHex (buf, val, 8);
+    buf = strAppend(buf, " ");
+    print_fbuf(text, col);
+
+    if(_print_X >= 300) print_fbuf("\n", col);
 }
 
 
@@ -167,52 +185,42 @@ static void drawCrashScreen() {
     buf = strAppend(buf, "FATAL ERROR - THREAD ");
     buf = printNum (buf, thread->id); *buf++ = '\n';
     buf = strAppend(buf, causes[(thread->context.cause >> 2) & 0x1F]);
-    buf = strAppend(buf, "\n");
-    print_fbuf(text); buf = text;
+    buf = strAppend(buf, "\n\n");
+    print_fbuf(text, 0xFFFF); buf = text;
 
     //print PC, opcode, and other regs
-    buf = strAppend(buf, "PC:");
-    buf = printHex (buf, thread->context.pc, 8);
-    buf = strAppend(buf, " SR:");
-    buf = printHex (buf, thread->context.sr, 8);
-    buf = strAppend(buf, " CR:");
-    buf = printHex (buf, thread->context.cause, 8);
-    buf = strAppend(buf, "\nVA:");
-    buf = printHex (buf, thread->context.badvaddr, 8);
-    buf = strAppend(buf, " RC:");
-    buf = printHex (buf, thread->context.rcp, 8);
-    buf = strAppend(buf, " OP:");
+    printReg("PC", thread->context.pc);
+    printReg("SR", thread->context.sr);
+    printReg("CR", thread->context.cause);
+    printReg("VA", thread->context.badvaddr);
+    printReg("RC", thread->context.rcp);
+
+    buf = strAppend(buf, "OP:");
     if(thread->context.pc >= 0x80000000 && thread->context.pc <= 0x807FFFFC) {
-        buf = printHex (buf, *(u32*)(thread->context.pc & ~3), 8);
+        buf = printHex(buf, *(u32*)(thread->context.pc & ~3), 8);
     }
     else buf = strAppend(buf, "--------");
     buf = strAppend(buf, "\n");
-    print_fbuf(text); buf = text;
+    print_fbuf(text, 0xFFFF); buf = text;
 
     //print GPRs
     u32 *reg = (u32*)&thread->context.at;
     buf = text;
     for(int i=0; regName[i]; i++) {
-        buf = strAppend(text, regName[i]); *buf++ = ':';
         reg++; //skip high word
-        buf = printHex (buf, *reg++, 8);
-        buf = strAppend(buf, ((i % 3) == 2) ? "\n" : " ");
-        print_fbuf(text);
+        printReg(regName[i], *reg++);
     }
 
     //print game-specific info
-    buf = text;
-    buf = strAppend(buf, "HE:"); buf = printHex (buf, (u32)heapEndPtr, 8);
-    buf = strAppend(buf, " HS:");
-    buf = printHex (buf, (u32)&heapEnd - (u32)heapEndPtr, 8);
-    buf = strAppend(buf, "\nMT:");buf = printHex (buf, mainThreadTask, 8);
-    buf = strAppend(buf, " PT:"); buf = printHex (buf, mainThreadPrevTask, 8);
-    buf = strAppend(buf, " ST:"); buf = printHex (buf, mainThreadSubTask, 8);
-    buf = strAppend(buf, "\nSM:");buf = printHex (buf, screenMode, 8);
-    buf = strAppend(buf, " RT:"); buf = printHex (buf, raceType, 8);
-    buf = strAppend(buf, " TN:"); buf = printHex (buf, curCourse, 8);
-    buf = strAppend(buf, "\nNP:");buf = printHex (buf, numPlayers, 8);
-    print_fbuf(text);
+    printReg("HE", (u32)heapEndPtr);
+    printReg("HS", (u32)&heapEnd - (u32)heapEndPtr);
+    printReg("MT", mainThreadTask);
+    printReg("PT", mainThreadPrevTask);
+    printReg("ST", mainThreadSubTask);
+    printReg("SM", screenMode);
+    printReg("RT", raceType);
+    printReg("TN", curCourse);
+    printReg("NP", numPlayers);
 
     //print hardware info
     buf = text;
@@ -227,9 +235,8 @@ static void drawCrashScreen() {
 
         buf = strAppend(buf, ", FW ");
         u32 ver = sdrv_getVersion() & 0xFFFF;
-        buf = printHex(buf, (ver / 100), 1);
-        *buf++ = '.';
-        buf = printHex(buf, (ver % 100), 2);
+        buf = printNum(buf, ver / 100); *buf++ = '.';
+        buf = printNumPadded(buf, ver % 100, 2);
 
         buf = strAppend(buf, ", ");
         buf = printNum (buf, sdrv_getRamSize() / (1024*1024));
@@ -238,7 +245,7 @@ static void drawCrashScreen() {
     else { //XXX ED64
         buf = strAppend(buf, "ROM\n");
     }
-    print_fbuf(text);
+    print_fbuf(text, 0xFFFF);
     //XXX show CP0 regs
 }
 
@@ -246,32 +253,53 @@ static void drawCrashScreen() {
 static void drawFloats() { //print FPRs
     char text[2048];
     char *buf = text;
-    u32 *fp = (u32*)&faultThread->context.fp0;
+    float *fp = (float*)&faultThread->context.fp0;
 
     buf = strAppend(buf, "FPCSR: ");
     buf = printHex (buf, faultThread->context.fpcsr, 8);
     buf = strAppend(buf, "\n");
-    print_fbuf(text);
+    print_fbuf(text, 0xFFFF);
 
     buf = text;
     for(int i=0; i<32; i++) {
+        float val = *fp;
+        u16 col = RGB16(31, 31, 31);
+        //if(val == 0.0f) col = RGB16(15, 15, 15);
+
         *buf++ = 'f';
         *buf++ = '0' + (i / 10);
         *buf++ = '0' + (i % 10);
         *buf++ = ':';
-        buf    = printHex(buf, *fp, 8); //XXX print as floats.
+
+        buf = printFloat(buf, val, 11);
         fp++;
-        if(i & 1) {
-            buf = strAppend(buf, "\n");
-            print_fbuf(text);
-            buf = text;
-        }
-        else {
-            buf = strAppend(buf, "  ");
-        }
+        if(i & 1) buf = strAppend(buf, "\n");
+        else buf = strAppend(buf, " ");
+        print_fbuf(text, col);
+        buf = text;
     }
 
-    print_fbuf("\nI LOVE YOU 00000000"); //lol OoT reference
+    double *dp = (double*)&faultThread->context.fp0;
+    buf = text;
+    for(int i=0; i<16; i++) {
+        double val = *dp;
+        u16 col = RGB16(31, 31, 31);
+        //if(val == 0.0d) col = RGB16(15, 15, 15);
+
+        *buf++ = 'd';
+        *buf++ = '0' + (i / 10);
+        *buf++ = '0' + (i % 10);
+        *buf++ = ':';
+
+        buf = printDouble(buf, val, 11);
+        dp++;
+        if(i & 1) buf = strAppend(buf, "\n");
+        else buf = strAppend(buf, " ");
+        print_fbuf(text, col);
+        buf = text;
+    }
+
+    print_fbuf("\nI LOVE YOU 00000000", 0xFFFF); //lol OoT reference
 }
 
 
@@ -291,19 +319,30 @@ static void drawStack(u16 buttons) { //print stack dump
     buf = strAppend(buf, " SP=");
     buf = printHex(buf, faultThread->context.sp, 8);
     buf = strAppend(buf, "\n");
-    print_fbuf(text);
+    print_fbuf(text, 0xFFFF);
 
     for(int i=0; i<24; i++) {
         buf = text;
         buf = printHex(buf, ((u32)data) & 0xFFFF, 4);
         buf = strAppend(buf, ":");
+        print_fbuf(text, 0xFFFF);
+        buf = text;
+
         for(int j=0; j<3; j++) {
-            *buf++ = (data == (u32*)faultThread->context.sp) ? '>' : ' ';
-            buf = printHex(buf, *data, 8);
+            u32 val = *data;
+            u16 col = RGB16(24, 24, 24);
+            if(val == 0          || val == 0xFFFFFFFF) col = RGB16(15, 15, 15);
+            if(val >= 0x80000000 && val <  0x80800000) col = RGB16(31, 31, 31);
+            if(data == (u32*)faultThread->context.sp)  col = RGB16( 0, 31, 31);
+
+            *buf++ = ' ';
+            buf = printHex(buf, val, 8);
+            print_fbuf(text, col);
+            buf = text;
             data--;
         }
         buf = strAppend(buf, "\n");
-        print_fbuf(text);
+        print_fbuf(text, 0xFFFF);
     }
 }
 
@@ -340,7 +379,7 @@ static void drawMem(u16 buttons) { //print memory dump
     buf = strAppend(buf, "MEM DUMP: ");
     buf = printHex(buf, (u32)data, 8);
     buf = strAppend(buf, "\n");
-    print_fbuf(text);
+    print_fbuf(text, 0xFFFF);
 
     //ensure addr is in bounds. XXX better method
     u32 a = (u32)addr;
@@ -353,16 +392,24 @@ static void drawMem(u16 buttons) { //print memory dump
     for(int i=0; i<24; i++) {
         buf = text;
         buf = printHex(buf, ((u32)data) & 0xFFFF, 4);
-        buf = strAppend(buf, ":");
+        buf = strAppend(buf, ": ");
+        print_fbuf(text, 0xFFFF);
+
         for(int j=0; j<3; j++) {
-            *buf++ = ' ';
+            buf = text;
+
             u32 val = *data;
+            u16 col = RGB16(24, 24, 24);
+            if(val == 0          || val == 0xFFFFFFFF) col = RGB16(15, 15, 15);
+            if(val >= 0x80000000 && val <  0x80800000) col = RGB16(31, 31, 31);
+
             buf = printHex(buf, val >> 16, 4); *buf++ = ' ';
             buf = printHex(buf, val & 0xFFFF, 4);
+            buf = strAppend(buf, " ");
             data++;
+            print_fbuf(text, col);
         }
-        buf = strAppend(buf, "\n");
-        print_fbuf(text);
+        print_fbuf("\n", 0xFFFF);
     }
 }
 
