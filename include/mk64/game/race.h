@@ -8,7 +8,8 @@ extern int raceType; //0=GP 1=Time Trial 2=VS 3=Battle
 extern int raceClass; //0=50cc 1=100cc 2=150cc 3=Extra
 extern s16 curCourse;
 extern int gpMode_currentCup;
-extern int gpMode_currentRound; //0 to 3; also cup selected in menu
+extern s16 gpMode_currentCup2;
+extern s16 gpMode_currentRound; //0 to 3; also cup selected in menu
 extern s16 isMirrorMode;
 
 //800067C4 set places

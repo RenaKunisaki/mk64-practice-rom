@@ -365,8 +365,9 @@ soundMode                   = 0x8018EDF2;
 dataScreenTrackSelected     = 0x8018EDF4;
 titleDemoCounter            = 0x8018EE00;
 titleDemoCounter2           = 0x8018EE04;
-gpMode_currentRound         = 0x8018EE08;
-cupSelectedInMenu           = 0x8018EE08; /* same as gpMode_currentRound */
+gpMode_currentCup2          = 0x8018EE08;
+cupSelectedInMenu           = 0x8018EE08; /* same as gpMode_currentCup2 */
+gpMode_currentRound         = 0x8018EE0A;
 
 controllers                 = 0x80196504;
 

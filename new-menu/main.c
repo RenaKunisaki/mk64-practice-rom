@@ -14,14 +14,15 @@ static int optSelected = 0; //currently selected menu option
 
 static const char *onOff[] = {"Off", "On"};
 static const char *raceModes[] = {"Mario GP", "Time Trial", "VS", "Battle"};
+static const char *cupNames[] = {"Mushroom", "Flower", "Star", "Special"};
 static const char *courseNames[] = {
-    "Mario Raceway",  "Choco Mountain",  "Bowser's Castle",
-    "Banshee Brdwlk", "Yoshi Valley",    "Frappe Snowland",
-    "Koopa Beach",    "Royal Raceway",   "Luigi Raceway",
-    "Moo Moo Farm",   "Toad's Turnpike", "Kalimari Desert",
-    "Sherbet Land",   "Rainbow Road",    "Wario Stadium",
-    "Block Fort",     "Skyscraper",      "Double Deck",
-    "DK Jungle",      "Big Donut",
+    "Mario Raceway",   "Choco Mountain",  "Bowser's Castle",
+    "Banshee Brdwalk", "Yoshi Valley",    "Frappe Snowland",
+    "Koopa Beach",     "Royal Raceway",   "Luigi Raceway",
+    "Moo Moo Farm",    "Toad's Turnpike", "Kalimari Desert",
+    "Sherbet Land",    "Rainbow Road",    "Wario Stadium",
+    "Block Fort",      "Skyscraper",      "Double Deck",
+    "DK Jungle",       "Big Donut",
 };
 static const char *playerNames[] = {"1", "2 Up-Down", "2 Left-Right", "3", "4"};
 static const char *characterNames[] = {
@@ -36,16 +37,17 @@ static struct {
     const char **names;
 } options[] = {
     {0,  3, 0, "Race Mode",   raceModes},
+    {0,  3, 0, "GP Cup",      cupNames},
     {0, 19, 0, "Course",      courseNames},
     {0,  4, 0, "Players",     playerNames}, //XXX 3-4p crashes
     {0,  7, 0, "Player 1",    characterNames},
     {0,  7, 1, "Player 2",    characterNames},
     {0,  7, 2, "Player 3",    characterNames},
     {0,  7, 3, "Player 4",    characterNames},
-    {0,  3, 0, "Class",       classNames},
+    {0,  3, 2, "Class",       classNames}, //default to 150cc
     {0,  1, 0, "Mirror Mode", onOff},
-    {0,  1, 0, "Items",       onOff}, //XXX (patch item box function?)
-    {0,  1, 0, "Music",       onOff}, //XXX
+    {0,  1, 1, "Items",       onOff}, //XXX (patch item box function?)
+    {0,  1, 1, "Music",       onOff}, //XXX
     {0,  1, 0, "Debug Mode",  onOff},
     //XXX other settings from that competition hack
     //L to reset/quit
@@ -54,6 +56,7 @@ static struct {
 
 enum {
     OPT_RACE_MODE = 0, //works
+    OPT_GP_CUP,
     OPT_COURSE, //only works in TT; pause screen shows Luigi Raceway
     OPT_PLAYERS, //works but 3p/4p crashes
     OPT_DRIVER1, //works
@@ -129,6 +132,9 @@ static void startTheGame() {
     //set other game parameters
     //screenSplitMode     = screenMode;
     raceType            = options[OPT_RACE_MODE].value;
+    gpMode_currentCup   = options[OPT_GP_CUP   ].value; //shown at race start
+    gpMode_currentCup2  = options[OPT_GP_CUP   ].value; //actually selects cup
+    gpMode_currentRound = 0;
     curCourse           = options[OPT_COURSE   ].value;
     playerCharacter[0]  = options[OPT_DRIVER1  ].value;
     playerCharacter[1]  = options[OPT_DRIVER2  ].value;
@@ -165,8 +171,9 @@ static void doButtons() {
     u16 buttons = curButtons & ~prevButtons;
 
     if(buttons & Z_TRIG) {
-        (*(u32*)0xDEADBEEF) = 0xFFFFFFFF; //crash the game to test crash handler
-        asm volatile("syscall"); //for nemu
+        //(*(u32*)0xDEADBEEF) = 0xFFFFFFFF; //crash the game to test crash handler
+        //asm volatile("syscall"); //for nemu
+        debugMenuCursorPos = 2;
     }
     if(buttons & L_JPAD) {
         if(--options[optSelected].value < options[optSelected].min)
@@ -196,7 +203,11 @@ static void doButtons() {
 
 void menu_titleHook() {
     //called when the title screen is being drawn.
-    if(mainThreadTask != 0) return;
+    if(mainThreadTask != 0) return; //don't draw if game is starting
+    if(debugMenuCursorPos > 1) { //original debug menu active
+        titleScreenDraw();
+        return;
+    }
 
     //HACK: disable waving flag because it prevents our text from appearing.
     (*(u32*)0x8018DA30) = 0;
