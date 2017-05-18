@@ -120,7 +120,7 @@ void drawChar(u16 *framebuffer, u16 X, u16 Y, char c) {
             u32 idx = ((fy+cy) * 128) + (fx+cx);
             u8 *src = (u8*)&ibmfont.pixel_data[idx / 8];
             u8 mask = *src & (0x80 >> cx);
-            u16 col = mask ? 0xFFFF : 0x0001;
+            u16 col = mask ? 0xFFFF : 0x0021;
             framebuffer[((Y+cy) * 320) + X+cx] = col;
         }
     }
@@ -194,7 +194,7 @@ void drawCrashScreen(u16 *framebuffer, OSThread *thread) {
     buf = strAppend(buf, "HE:"); buf = printHex (buf, (u32)heapEndPtr, 8);
     buf = strAppend(buf, " HS:");
     buf = printHex (buf, (u32)&heapEnd - (u32)heapEndPtr, 8);
-    buf = strAppend(buf, " MT:"); buf = printHex (buf, mainThreadTask, 8);
+    buf = strAppend(buf, "\nMT:");buf = printHex (buf, mainThreadTask, 8);
     buf = strAppend(buf, " PT:"); buf = printHex (buf, mainThreadPrevTask, 8);
     buf = strAppend(buf, " ST:"); buf = printHex (buf, mainThreadSubTask, 8);
     buf = strAppend(buf, "\nSM:");buf = printHex (buf, screenMode, 8);
