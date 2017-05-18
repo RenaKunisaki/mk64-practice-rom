@@ -196,6 +196,7 @@ static void doButtons() {
 
 void menu_titleHook() {
     //called when the title screen is being drawn.
+    if(mainThreadTask != 0) return;
 
     //HACK: disable waving flag because it prevents our text from appearing.
     (*(u32*)0x8018DA30) = 0;
