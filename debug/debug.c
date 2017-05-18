@@ -4,6 +4,9 @@ extern "C" {
 extern char* printHex(char *buf, u32 num, int nDigits);
 extern char* printNum(char *buf, u32 num);
 
+static u32 memDispAddr = 0x8018EE00;
+static int memDispEnabled = 1;
+
 void debug_main_init() {
     //Called at boot once our code is loaded into RAM.
 
@@ -124,7 +127,7 @@ void drawPlayerInfo(int which) {
         debugPrintStr(250, 195, text);
     #endif
 
-        //draw camera coords (will overlap speed)
+    //draw camera coords (will overlap speed)
     #if 0
         buf = text;
         buf = printHex(buf, player1_cameraPos.x, 4); *buf++ = ' ';
@@ -133,12 +136,29 @@ void drawPlayerInfo(int which) {
         debugPrintStr(170, 195, text);
     #endif
 
-        //draw race progress
+    //draw race progress
     #if 1
         buf = text;
-        buf = printHex(buf, player1_raceProgress, 4); *buf++ = 0;
+        buf = printHex(buf, player1_raceProgress, 4);
         debugPrintStr(47, 13, text);
     #endif
+
+    //draw memory dump
+    if(memDispEnabled) {
+        u8 *data = (u8*)memDispAddr;
+        for(int i=0; i<16; i++) {
+            buf = text;
+            buf = printHex(buf, (u32)data, 8);
+
+            for(int j=0; j<4; j++) {
+                *buf++ = ' ';
+                buf = printHex(buf, *data, 2);
+                data++;
+            }
+            *buf++ = 0;
+            debugPrintStr(100, 13 + (8*i), text);
+        }
+    }
 
     prevCoords.x = p->position.x;
     prevCoords.y = p->position.y;
@@ -156,6 +176,16 @@ void debugHook() { //called every frame
         drawInputDisplay();
         debugLoadFont();
         drawPlayerInfo(0);
+
+        if(buttons & L_TRIG | R_TRIG) memDispEnabled ^= 1;
+
+        if(memDispEnabled) {
+            u32 mult = (buttons & Z_TRIG) ? 0x10 : 0x1;
+            if(buttons & U_JPAD) memDispAddr -= 0x0040 * mult;
+            if(buttons & D_JPAD) memDispAddr += 0x0040 * mult;
+            if(buttons & L_JPAD) memDispAddr -= 0x1000 * mult;
+            if(buttons & R_JPAD) memDispAddr += 0x1000 * mult;
+        }
     }
 
     //if 64drive button pressed, or L+R+Z pressed, toggle debug mode
