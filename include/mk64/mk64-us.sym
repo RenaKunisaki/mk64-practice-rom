@@ -309,6 +309,7 @@ dma_mesg                    = 0x8014F098;
 dma_iomesg                  = 0x8014F0A0;
 controller1_state           = 0x8014F0F0;
 
+frameSkip                   = 0x80150114;
 resetType                   = 0x8015011C;
 isRaceTimerFrozen           = 0x8015011E;
 player1_cameraDist          = 0x80150130;
@@ -366,8 +367,8 @@ debugMenuNumPlayers         = 0x8018EDF3;
 dataScreenTrackSelected     = 0x8018EDF4;
 titleDemoCounter            = 0x8018EE00;
 titleDemoCounter2           = 0x8018EE04;
-gpMode_currentCup           = 0x8018EE08; /* actual cup select */
-gpMode_currentRound         = 0x8018EE0A;
+gpMode_currentCup           = 0x8018EE08; /* u16, actual cup select */
+gpMode_currentRound         = 0x8018EE0A; /* u16 "CourseSelection2" */
 
 controllers                 = 0x80196504;
 

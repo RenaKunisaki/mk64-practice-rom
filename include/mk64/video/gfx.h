@@ -17,6 +17,7 @@ enum {
     SCREEN_MODE_4P //also used for 3P, the 4th part shows map
 } ScreenModes;
 
+extern int frameSkip; //2=render every 2nd frame, 3=every 3rd...
 extern int screenMode, screenSplitMode;
 extern u32* dlistBuffer; //ptr to current position in buffer
 extern u16* frameBuffers[4]; //XXX verify size
