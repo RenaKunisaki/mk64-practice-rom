@@ -85,7 +85,7 @@ static void drawTitle() {
     static int xpos = 0, ypos = 0, width = 320, height = 240;
     dlistBuffer = drawBox(dlistBuffer,
         xpos, ypos, xpos+width, ypos+height, //x1, y1, x2, y2
-        0, 0, 0, fadeFrameCount * 4.3f); //r, g, b, a
+        0, 0, 0, fadeFrameCount * (128.0f / 60.0f)); //r, g, b, a
 
     //reset the opacity for text
     dlistBuffer = drawBox(dlistBuffer,
@@ -278,7 +278,7 @@ void menu_titleHook() {
     //debugPrintStr(10, 10, "butts");
     doButtons(); //handle buttons
 
-    if(fadeFrameCount < 30) fadeFrameCount++;
+    if(fadeFrameCount < 60) fadeFrameCount++;
 }
 
 
