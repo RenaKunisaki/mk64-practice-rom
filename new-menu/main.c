@@ -11,6 +11,7 @@ void title_main_init() {
 
 
 static int optSelected = 0; //currently selected menu option
+static int fadeFrameCount = 0;
 
 static const char *onOff[] = {"Off", "On"};
 static const char *raceModes[] = {"Mario GP", "Time Trial", "VS", "Battle"};
@@ -84,7 +85,7 @@ static void drawTitle() {
     static int xpos = 0, ypos = 0, width = 320, height = 240;
     dlistBuffer = drawBox(dlistBuffer,
         xpos, ypos, xpos+width, ypos+height, //x1, y1, x2, y2
-        0, 0, 0, 128); //r, g, b, a
+        0, 0, 0, fadeFrameCount * 4.3f); //r, g, b, a
 
     //reset the opacity for text
     dlistBuffer = drawBox(dlistBuffer,
@@ -250,8 +251,12 @@ static void doButtons() {
 
 void menu_titleHook() {
     //called when the title screen is being drawn.
-    if(mainThreadTask != 0) return; //don't draw if game is starting
+    if(mainThreadTask != 0) {
+        fadeFrameCount = 0;
+        return; //don't draw if game is starting
+    }
     if(debugMenuCursorPos > 1) { //original debug menu active
+        fadeFrameCount = 0;
         titleScreenDraw();
         return;
     }
@@ -272,6 +277,8 @@ void menu_titleHook() {
     //debugLoadFont();
     //debugPrintStr(10, 10, "butts");
     doButtons(); //handle buttons
+
+    if(fadeFrameCount < 30) fadeFrameCount++;
 }
 
 
