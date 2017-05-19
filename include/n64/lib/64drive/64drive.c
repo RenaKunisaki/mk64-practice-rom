@@ -156,9 +156,6 @@ void sdrv_dprint(const char *text) {
     buf.serial = 0xFFFFFFFF;
     cache_writeback((void*)&buf, DPRINT_BUF_SIZE);
 
-    //u32 intMask = __osDisableInt();
-    //while(dma_busy() || sdrv_isBusy());
-
     //scan the slots for a free one.
     int bufIdx = 0;
     while(1) {
@@ -168,11 +165,8 @@ void sdrv_dprint(const char *text) {
         if(bufIdx < DPRINT_NUM_BUFFERS) break;
 
         //no free buffer... wait for one
-        //__osRestoreInt(intMask);
-        //return;
-        osYieldThread();
-        //intMask = __osDisableInt();
-        //while(dma_busy() || sdrv_isBusy());
+        return;
+        //osYieldThread();
     }
 
     u32 intMask = __osDisableInt();
