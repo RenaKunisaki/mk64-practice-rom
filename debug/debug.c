@@ -104,8 +104,10 @@ void drawPlayerInfo(int which) {
 
     static vec3f prevCoords;
 
+    debugLoadFont();
+
     //draw coords
-    #if 0
+    #if 1
         buf = printHex(buf, p->position.x, 4); *buf++ = ' ';
         buf = printHex(buf, p->position.y, 4); *buf++ = ' ';
         buf = printHex(buf, p->position.z, 4); *buf++ = 0;
@@ -113,7 +115,7 @@ void drawPlayerInfo(int which) {
     #endif
 
     //draw speed (XXX don't update if paused)
-    #if 0
+    #if 1
         float dx = p->position.x - prevCoords.x;
         //float dy = p->position.y - prevCoords.y;
         float dz = p->position.z - prevCoords.z;
@@ -135,11 +137,16 @@ void drawPlayerInfo(int which) {
     #endif
 
     //draw race progress
-    #if 0
+    #if 1
         buf = text;
         buf = printHex(buf, player1_raceProgress, 4);
         debugPrintStr(47, 13, text);
     #endif
+
+    //buf = text;
+    //buf = printHex(buf, *(u32*)0x80150114, 4);
+    //debugPrintStr(47, 21, text);
+
 
     prevCoords.x = p->position.x;
     prevCoords.y = p->position.y;
@@ -222,9 +229,8 @@ void debugHook() { //called every frame
     u16 debugBtns = L_TRIG | Z_TRIG;
 
     if(debugMode) {
-        //drawInputDisplay();
-        //debugLoadFont();
-        //drawPlayerInfo(0);
+        drawInputDisplay();
+        drawPlayerInfo(0);
         drawMemViewer(buttons, heldButtons);
     }
 
