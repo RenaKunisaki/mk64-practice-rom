@@ -6,4 +6,4 @@ u32* drawBox(u32 *buf, int x1, int y1, int x2, int y2,
  * r, g, b, a are uint32_t but values are 0 to 255.
  */
 
-extern int isHudEnabled;
+extern s16 isHudEnabled;

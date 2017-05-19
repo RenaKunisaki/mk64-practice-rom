@@ -11,8 +11,10 @@ title_menu_hooks_init:
     lui   $t1, 0x800B
     ori   $t0, $zero, 0x1000
     sh    $t0, 0x2190($t1) # disable A/Start button at title
+    sw    $t0, 0x829C($t1) # 800A7D64 - disable R button at title
 
     j     title_main_init
-        sw    $t0, 0x829C($t1) # 800A7D64 - disable R button at title
+        nop # why sw doesn't work here? macro expands to multiple instructions?
+        # but there's no reason sw should be a macro at all...
 
 jal_titleHook: jal menu_titleHook

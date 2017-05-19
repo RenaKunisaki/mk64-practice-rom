@@ -22,7 +22,7 @@ void debugFinishText();
 extern u16 debugMode; //1=on
 extern s8  debugMenuCursorPos; //2-7 to display debug menu
 extern s16 debugCoordDisplay; //1=on, requires debug mode
-extern s8  debugMenuScreenMode;
+extern s8  debugMenuScreenMode, debugMenuNumPlayers;
 extern s16 debugResourceMeters; //1=on, requires debug mode
 extern u16 crashScreenCodeButtons[10];
 extern s16 crashScreenCodeEntryCounter;

@@ -2,6 +2,7 @@
 #define SCREEN_HEIGHT 240
 #define SCREEN_SIZE (SCREEN_WIDTH * SCREEN_HEIGHT)
 
+//this game uses RGBA 5551 for its framebuffer
 #define RGB16(r, g, b) (((r) << 11) | ((g) << 6) | ((b) << 1) | 1)
 
 extern struct {

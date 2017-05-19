@@ -4,8 +4,6 @@ extern "C" {
 extern char* printHex(char *buf, u32 num, int nDigits);
 extern char* printNum(char *buf, u32 num);
 
-static u32 memDispAddr = 0x8018EE00;
-static int memDispEnabled = 1;
 
 void debug_main_init() {
     //Called at boot once our code is loaded into RAM.
@@ -102,12 +100,12 @@ void drawInputDisplay() {
 void drawPlayerInfo(int which) {
     Player *p = &player[which];
     char text[64];
+    char *buf = text;
 
     static vec3f prevCoords;
 
     //draw coords
-    #if 1
-        char *buf = text;
+    #if 0
         buf = printHex(buf, p->position.x, 4); *buf++ = ' ';
         buf = printHex(buf, p->position.y, 4); *buf++ = ' ';
         buf = printHex(buf, p->position.z, 4); *buf++ = 0;
@@ -115,7 +113,7 @@ void drawPlayerInfo(int which) {
     #endif
 
     //draw speed (XXX don't update if paused)
-    #if 1
+    #if 0
         float dx = p->position.x - prevCoords.x;
         //float dy = p->position.y - prevCoords.y;
         float dz = p->position.z - prevCoords.z;
@@ -137,64 +135,108 @@ void drawPlayerInfo(int which) {
     #endif
 
     //draw race progress
-    #if 1
+    #if 0
         buf = text;
         buf = printHex(buf, player1_raceProgress, 4);
         debugPrintStr(47, 13, text);
     #endif
-
-    //draw memory dump
-    if(memDispEnabled) {
-        u8 *data = (u8*)memDispAddr;
-        for(int i=0; i<16; i++) {
-            buf = text;
-            buf = printHex(buf, (u32)data, 8);
-
-            for(int j=0; j<4; j++) {
-                *buf++ = ' ';
-                buf = printHex(buf, *data, 2);
-                data++;
-            }
-            *buf++ = 0;
-            debugPrintStr(100, 13 + (8*i), text);
-        }
-    }
 
     prevCoords.x = p->position.x;
     prevCoords.y = p->position.y;
     prevCoords.z = p->position.z;
 }
 
+void drawMemViewer(u16 buttons, u16 heldButtons) {
+    static int memDispEnabled = 1;
+    static u32 memDispAddr    = 0x800DC500;
+    static int memDispRow     = 0;
+    static int memDispCol     = 0;
+    static int xpos = 122, ypos = 90;
+    static int cursorCol = 0;
+
+    char text[2048];
+    char *buf = text;
+
+    if((heldButtons & L_TRIG) && (buttons & R_TRIG)) memDispEnabled ^= 1;
+    if(!memDispEnabled) return;
+
+    u32 mult = (heldButtons & Z_TRIG) ? 0x100 : 0x1;
+    if(buttons & U_JPAD) memDispAddr -= 0x0040 * mult;
+    if(buttons & D_JPAD) memDispAddr += 0x0040 * mult;
+    if(buttons & L_JPAD) memDispAddr -= 0x1000 * mult;
+    if(buttons & R_JPAD) memDispAddr += 0x1000 * mult;
+    if(buttons & R_CBUTTONS) memDispCol++;
+    if(buttons & L_CBUTTONS) memDispCol--;
+    if(buttons & U_CBUTTONS) memDispRow--;
+    if(buttons & D_CBUTTONS) memDispRow++;
+    memDispCol &=  7;
+    memDispRow &= 15;
+
+    u8 *curAddr = (u8*)(memDispAddr + (memDispRow * 4) + (memDispCol / 2));
+    u32 curAdj  = (memDispCol & 1) ? 1 : 0x10;
+    if(buttons & A_BUTTON) *curAddr += curAdj;
+    if(buttons & B_BUTTON) *curAddr -= curAdj;
+
+    //draw background
+    dlistBuffer = drawBox(dlistBuffer,
+        xpos + 15, ypos + 15, xpos + 185, ypos+15+(16*8), //x1, y1, x2, y2
+        0, 0, 0, 128); //r, g, b, a
+
+    //draw cursor
+    int cx = xpos + 20 + (memDispCol * 8) + (memDispCol / 2) * 8 + (8*9);
+    int cy = ypos + 19 + (memDispRow * 8);
+    dlistBuffer = drawBox(dlistBuffer,
+        cx-1, cy-1, cx+10, cy+10, //x1, y1, x2, y2
+        (cursorCol > 3) ? 255 : 0, 0, 0, 255); //r, g, b, a
+    cursorCol = (cursorCol + 1) & 7;
+
+    dlistBuffer = drawBox(dlistBuffer, //reset color
+        0, 0, 1, 1, //x1, y1, x2, y2
+        0, 0, 0, 255); //r, g, b, a
+
+    debugLoadFont();
+    u8 *data = (u8*)memDispAddr;
+    for(int i=0; i<16; i++) {
+        buf = text;
+        buf = printHex(buf, (u32)data, 8);
+
+        for(int j=0; j<4; j++) {
+            *buf++ = ' ';
+            buf = printHex(buf, *data, 2);
+            data++;
+        }
+        *buf++ = 0;
+        debugPrintStr(xpos, ypos + (8*i), text);
+    }
+}
+
 void (*replaced)() = (void (*)()) 0x80093E20;
 void debugHook() { //called every frame
     replaced();
+
+    static u16 prevButtons = 0;
+    u16 heldButtons = player1_controllerState.buttons;
+    u16 buttons = heldButtons & ~prevButtons;
+
     static int buttonCounter = 0;
-    u16 buttons = player1_controllerState.buttons;
     u16 debugBtns = L_TRIG | Z_TRIG;
 
     if(debugMode) {
-        drawInputDisplay();
-        debugLoadFont();
-        drawPlayerInfo(0);
-
-        if(buttons & L_TRIG | R_TRIG) memDispEnabled ^= 1;
-
-        if(memDispEnabled) {
-            u32 mult = (buttons & Z_TRIG) ? 0x10 : 0x1;
-            if(buttons & U_JPAD) memDispAddr -= 0x0040 * mult;
-            if(buttons & D_JPAD) memDispAddr += 0x0040 * mult;
-            if(buttons & L_JPAD) memDispAddr -= 0x1000 * mult;
-            if(buttons & R_JPAD) memDispAddr += 0x1000 * mult;
-        }
+        //drawInputDisplay();
+        //debugLoadFont();
+        //drawPlayerInfo(0);
+        drawMemViewer(buttons, heldButtons);
     }
 
     //if 64drive button pressed, or L+R+Z pressed, toggle debug mode
-    if(/*(sdrv_isInit && sdrv_isButtonPressed())
-    || */(buttons & debugBtns) == debugBtns) {
+    if((sdrv_isInit && sdrv_isButtonPressed())
+    || (heldButtons & debugBtns) == debugBtns) {
         buttonCounter++; //debounce button
         if(buttonCounter == 4) doButton();
     }
     else buttonCounter = 0;
+
+    prevButtons = heldButtons;
 }
 
 } //extern "C"

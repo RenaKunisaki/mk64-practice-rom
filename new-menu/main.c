@@ -33,22 +33,24 @@ static const char *classNames[] = {"50(", "100(", "150(", "Extra"};// '(' = "cc"
 static struct {
     int min, max;
     int value;
+    u8 dispModes; //bitmask: 01=GP 02=TT 04=VS 08=Battle
     const char *text;
     const char **names;
 } options[] = {
-    {0,  3, 0, "Race Mode",   raceModes},
-    {0,  3, 0, "GP Cup",      cupNames},
-    {0, 19, 0, "Course",      courseNames},
-    {0,  4, 0, "Players",     playerNames}, //XXX 3-4p crashes
-    {0,  7, 0, "Player 1",    characterNames},
-    {0,  7, 1, "Player 2",    characterNames},
-    {0,  7, 2, "Player 3",    characterNames},
-    {0,  7, 3, "Player 4",    characterNames},
-    {0,  3, 2, "Class",       classNames}, //default to 150cc
-    {0,  1, 0, "Mirror Mode", onOff},
-    {0,  1, 1, "Items",       onOff}, //XXX (patch item box function?)
-    {0,  1, 1, "Music",       onOff}, //XXX
-    {0,  1, 0, "Debug Mode",  onOff},
+    {0,  3, 0, 0xF, "Race Mode",   raceModes},
+    {0,  3, 0, 0x1, "GP Cup",      cupNames},
+    {0,  3, 0, 0x1, "GP Round",    NULL},
+    {0, 19, 0, 0xE, "Course",      courseNames},
+    {0,  4, 0, 0xF, "Players",     playerNames}, //XXX 3-4p crashes
+    {0,  7, 0, 0xF, "Player 1",    characterNames},
+    {0,  7, 1, 0xF, "Player 2",    characterNames},
+    {0,  7, 2, 0xF, "Player 3",    characterNames},
+    {0,  7, 3, 0xF, "Player 4",    characterNames},
+    {0,  3, 2, 0xF, "Class",       classNames}, //default to 150cc
+    {0,  1, 0, 0xF, "Mirror Mode", onOff},
+    {0,  1, 1, 0xF, "Items",       onOff}, //XXX (patch item box function?)
+    {0,  1, 1, 0xF, "Music",       onOff}, //XXX
+    {0,  1, 0, 0xF, "Debug Mode",  onOff},
     //XXX other settings from that competition hack
     //L to reset/quit
     {0,  0, NULL, NULL, NULL}
@@ -56,9 +58,10 @@ static struct {
 
 enum {
     OPT_RACE_MODE = 0, //works
-    OPT_GP_CUP,
+    OPT_GP_CUP, //works
+    OPT_GP_ROUND, //works but game doesn't init properly
     OPT_COURSE, //only works in TT; pause screen shows Luigi Raceway
-    OPT_PLAYERS, //works but 3p/4p crashes
+    OPT_PLAYERS, //works
     OPT_DRIVER1, //works
     OPT_DRIVER2,
     OPT_DRIVER3,
@@ -95,24 +98,34 @@ static void drawTitle() {
 
 static void drawMenu() {
     //draw the actual menu
+    u8 mode = 1 << options[OPT_RACE_MODE].value;
+
     //int x=30, y=48;
     int x=30, y=60;
     for(int i=0; options[i].text; i++) {
-        textSetColor(i == optSelected ? TEXT_TRANS2 : TEXT_GREEN);
-        textDraw(x, y, options[i].text, 1, 0.8f, 0.8f);
+        if(options[i].dispModes & mode) {
+            textSetColor(i == optSelected ? TEXT_TRANS2 : TEXT_GREEN);
+            textDraw(x, y, options[i].text, 1, 0.8f, 0.8f);
 
-        int val = options[i].value;
-        if(options[i].names) {
-            textDraw(x+130, y, options[i].names[val], 1, 0.8f, 0.8f);
-        }
-        else {
-            char text[64];
-            printNum(text, val);
-            textDraw(x+130, y, text, 1, 0.8f, 0.8f);
-        }
+            int val = options[i].value;
+            if(options[i].names) {
+                textDraw(x+130, y, options[i].names[val], 1, 0.8f, 0.8f);
+            }
+            else {
+                char text[64];
+                printNum(text, val);
+                textDraw(x+130, y, text, 1, 0.8f, 0.8f);
+            }
 
-        y += 13;
+            y += 13;
+        }
     }
+}
+
+
+static char* printNumText(char *buf, const char *s, int num) {
+    buf = strAppend(buf, s);
+    return printNum(buf, num);
 }
 
 
@@ -130,33 +143,52 @@ static void startTheGame() {
     }
 
     //set other game parameters
-    //screenSplitMode     = screenMode;
-    raceType            = options[OPT_RACE_MODE].value;
-    gpMode_currentCup   = options[OPT_GP_CUP   ].value; //shown at race start
-    gpMode_currentCup2  = options[OPT_GP_CUP   ].value; //actually selects cup
-    gpMode_currentRound = 0;
-    curCourse           = options[OPT_COURSE   ].value;
-    playerCharacter[0]  = options[OPT_DRIVER1  ].value;
-    playerCharacter[1]  = options[OPT_DRIVER2  ].value;
-    playerCharacter[2]  = options[OPT_DRIVER3  ].value;
-    playerCharacter[3]  = options[OPT_DRIVER4  ].value;
-    raceClass           = options[OPT_CLASS    ].value;
-    isMirrorMode        = options[OPT_MIRROR   ].value;
+    screenSplitMode       = screenMode;
+    debugMenuScreenMode   = screenMode; //this might be the actual screen mode...
+    //numPlayers2           = numPlayers;
+    debugMenuNumPlayers   = numPlayers;
+    raceType              = options[OPT_RACE_MODE].value;
+    gpMode_currentCupDisp = options[OPT_GP_CUP   ].value; //shown at race start
+    gpMode_currentCup     = options[OPT_GP_CUP   ].value; //actually selects cup
+    gpMode_currentRound   = options[OPT_GP_ROUND ].value;
+    curCourse             = options[OPT_COURSE   ].value;
+    playerCharacter[0]    = options[OPT_DRIVER1  ].value;
+    playerCharacter[1]    = options[OPT_DRIVER2  ].value;
+    playerCharacter[2]    = options[OPT_DRIVER3  ].value;
+    playerCharacter[3]    = options[OPT_DRIVER4  ].value;
+    raceClass             = options[OPT_CLASS    ].value;
+    isMirrorMode          = options[OPT_MIRROR   ].value;
     //XXX items, music
-    debugMode           = options[OPT_DEBUG    ].value;
-    debugCoordDisplay   = debugMode;
-    debugResourceMeters = debugMode;
+    debugMode             = options[OPT_DEBUG    ].value;
+    debugCoordDisplay     = debugMode;
+    debugResourceMeters   = debugMode;
 
-    //gpMode_currentCup   = 2;
-    //gpMode_currentRound = 2;
+    for(int i=0; i<numPlayers; i++) playerBalloons[i] = 3;
 
-    mainThreadTask      = 4; //start game
+    char text[2048]; char *buf = text;
+    buf = printNumText(buf, "Starting game\n * players    = ", numPlayers);
+    buf = printNumText(buf, "\n * screenMode = ", screenMode);
+    buf = printNumText(buf, "\n * raceType   = ", raceType);
+    buf = printNumText(buf, "\n * cup        = ", gpMode_currentCup);
+    buf = printNumText(buf, "\n * round      = ", gpMode_currentRound);
+    buf = printNumText(buf, "\n * course     = ", curCourse);
+    buf = printNumText(buf, "\n * chars      = ", playerCharacter[0]);
+    buf = printNumText(buf, ",", playerCharacter[1]);
+    buf = printNumText(buf, ",", playerCharacter[2]);
+    buf = printNumText(buf, ",", playerCharacter[3]);
+    buf = printNumText(buf, "\n * class      = ", raceClass);
+    buf = printNumText(buf, "\n * mirror     = ", isMirrorMode);
+    buf = printNumText(buf, "\n * debug      = ", debugMode);
+    buf = strAppend(buf, "\n");
+    sdrv_dprint(text);
+
+    mainThreadTask = 4; //start game
 }
 
 
 static void doButtons() {
     //handle button presses
-    /* libultra names
+    /* ultra64 names
      * 8000 A_BUTTON      0080 unused
      * 4000 B_BUTTON      0040 unused
      * 2000 Z_TRIG        0020 L_TRIG
@@ -169,11 +201,12 @@ static void doButtons() {
     static u16 prevButtons = 0;
     u16 curButtons = player1_controllerState.buttons;
     u16 buttons = curButtons & ~prevButtons;
+    u8 mode = 1 << options[OPT_RACE_MODE].value;
 
     if(buttons & Z_TRIG) {
         //(*(u32*)0xDEADBEEF) = 0xFFFFFFFF; //crash the game to test crash handler
         //asm volatile("syscall"); //for nemu
-        debugMenuCursorPos = 2;
+        debugMenuCursorPos = 2; //show the original debug menu for testing
     }
     if(buttons & L_JPAD) {
         if(--options[optSelected].value < options[optSelected].min)
@@ -186,16 +219,20 @@ static void doButtons() {
         soundPlay2(SND_CURSOR_MOVE);
     }
     if(buttons & U_JPAD) {
-        optSelected--;
-        if(optSelected < 0) optSelected = NUM_OPTIONS - 1;
+        do {
+            optSelected--;
+            if(optSelected < 0) optSelected = NUM_OPTIONS - 1;
+        } while(!(options[optSelected].dispModes & mode));
         soundPlay2(SND_CURSOR_MOVE);
     }
     if(buttons & D_JPAD) {
-        optSelected++;
-        if(optSelected >= NUM_OPTIONS) optSelected = 0;
+        do {
+            optSelected++;
+            if(optSelected >= NUM_OPTIONS) optSelected = 0;
+        } while(!(options[optSelected].dispModes & mode));
         soundPlay2(SND_CURSOR_MOVE);
     }
-    if(buttons & START_BUTTON) startTheGame();
+    if(buttons & (START_BUTTON | A_BUTTON)) startTheGame();
 
     prevButtons = curButtons;
 }

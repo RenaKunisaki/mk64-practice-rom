@@ -525,6 +525,7 @@ static void doButtons() {
         return;
     }
 
+    if(buttons & START_BUTTON) printCrashInfoToConsole();
     if(buttons & L_TRIG) page--;
     if(buttons & R_TRIG) page++;
     if(page < 0) page = 5;

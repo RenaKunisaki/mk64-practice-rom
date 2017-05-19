@@ -271,7 +271,7 @@ frameCounter                = 0x800DC54C;
 alwaysCountingFloat         = 0x800DC594;
 gameTimer                   = 0x800DC598;
 curCourse                   = 0x800DC5A0;
-anotherSkyColorThing        = 0x800DC5B4;
+enableSky                   = 0x800DC5B4; /* u16, 0 = don't draw skybox */
 isHudEnabled                = 0x800DC5B8;
 blackSkyOnSomeCoursesIfZero = 0x800DC5BC;
 setToResetGame              = 0x800DC5C0;
@@ -362,6 +362,7 @@ debugMenuCursorPos          = 0x8018EDEF;
 numPlayers2                 = 0x8018EDF0;
 debugMenuScreenMode         = 0x8018EDF1;
 soundMode                   = 0x8018EDF2;
+debugMenuNumPlayers         = 0x8018EDF3;
 dataScreenTrackSelected     = 0x8018EDF4;
 titleDemoCounter            = 0x8018EE00;
 titleDemoCounter2           = 0x8018EE04;
