@@ -39,17 +39,17 @@ static struct {
 } options[] = {
     {0,  3, 0, 0xF, "Race Mode",   raceModes},
     {0,  3, 0, 0x1, "GP Cup",      cupNames},
-    {0,  3, 0, 0x1, "GP Round",    NULL},
+    {0,  3, 0, 0x0, "GP Round",    NULL}, //XXX
     {0, 19, 0, 0xE, "Course",      courseNames},
-    {0,  4, 0, 0xF, "Players",     playerNames}, //XXX 3-4p crashes
+    {0,  4, 0, 0xD, "Players",     playerNames},
     {0,  7, 0, 0xF, "Player 1",    characterNames},
-    {0,  7, 1, 0xF, "Player 2",    characterNames},
-    {0,  7, 2, 0xF, "Player 3",    characterNames},
-    {0,  7, 3, 0xF, "Player 4",    characterNames},
+    {0,  7, 1, 0xD, "Player 2",    characterNames},
+    {0,  7, 2, 0xC, "Player 3",    characterNames},
+    {0,  7, 3, 0xC, "Player 4",    characterNames},
     {0,  3, 2, 0xF, "Class",       classNames}, //default to 150cc
     {0,  1, 0, 0xF, "Mirror Mode", onOff},
-    {0,  1, 1, 0xF, "Items",       onOff}, //XXX (patch item box function?)
-    {0,  1, 1, 0xF, "Music",       onOff}, //XXX
+    {0,  1, 1, 0x0, "Items",       onOff}, //XXX (patch item box function?)
+    {0,  1, 1, 0x0, "Music",       onOff}, //XXX
     {0,  1, 0, 0xF, "Debug Mode",  onOff},
     //XXX other settings from that competition hack
     //L to reset/quit
@@ -58,21 +58,25 @@ static struct {
 
 enum {
     OPT_RACE_MODE = 0, //works
-    OPT_GP_CUP, //works
+    OPT_GP_CUP,   //works
     OPT_GP_ROUND, //works but game doesn't init properly
-    OPT_COURSE, //only works in TT; pause screen shows Luigi Raceway
-    OPT_PLAYERS, //works
-    OPT_DRIVER1, //works
+    OPT_COURSE,   //only works in TT; pause screen shows Luigi Raceway
+    OPT_PLAYERS,  //works
+    OPT_DRIVER1,  //works
     OPT_DRIVER2,
     OPT_DRIVER3,
     OPT_DRIVER4,
-    OPT_CLASS, //works
+    OPT_CLASS,  //works
     OPT_MIRROR, //works
-    OPT_ITEMS, //not implemented (need to patch item box loader)
-    OPT_MUSIC, //not implemented
-    OPT_DEBUG, //works
+    OPT_ITEMS,  //not implemented (need to patch item box loader)
+    OPT_MUSIC,  //not implemented
+    OPT_DEBUG,  //works
     NUM_OPTIONS
 };
+
+//#players options are 0=1p, 1=2p UD, 2=2p LR, 3=3p, 4=4p
+static u8 gameModeMinPlayers[] = {0, 0, 1, 1}; //GP, TT, VS, Battle
+static u8 gameModeMaxPlayers[] = {2, 0, 4, 4}; //GP, TT, VS, Battle
 
 
 static void drawTitle() {
@@ -232,8 +236,14 @@ static void doButtons() {
         } while(!(options[optSelected].dispModes & mode));
         soundPlay2(SND_CURSOR_MOVE);
     }
-    if(buttons & (START_BUTTON | A_BUTTON)) startTheGame();
 
+    mode = options[OPT_RACE_MODE].value;
+    if( options[OPT_PLAYERS].value < gameModeMinPlayers[mode])
+        options[OPT_PLAYERS].value = gameModeMaxPlayers[mode];
+    if( options[OPT_PLAYERS].value > gameModeMaxPlayers[mode])
+        options[OPT_PLAYERS].value = gameModeMinPlayers[mode];
+
+    if(buttons & (START_BUTTON | A_BUTTON)) startTheGame();
     prevButtons = curButtons;
 }
 
