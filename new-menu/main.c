@@ -1,8 +1,13 @@
 #include "../include/mk64/mk64.h"
 extern "C" {
 
+void menu_titleHook();
+
 void title_main_init() {
     //Called at boot once our code is loaded into RAM.
+    PATCHJAL(0x80094BD0, menu_titleHook);
+    PATCH16(0x800B2190, 0x1000); //disable A/Start button at title
+    PATCH32(0x800A7D64, 0); //disable R button at title
 }
 
 
