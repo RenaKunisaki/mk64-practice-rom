@@ -1,0 +1,51 @@
+You will need the header files from an official Nintendo Ultra64 SDK. The directory structure should look like this:
+
+include/n64/ultra64/
+├── assert.h
+├── bstring.h
+├── make
+│   └── PRDEFS
+├── math.h
+├── PR
+│   ├── abi.h
+│   ├── gbi.h
+│   ├── gt.h
+│   ├── gu.h
+│   ├── leoappli.h
+│   ├── leo.h
+│   ├── libaudio.h
+│   ├── libnos.h
+│   ├── mbi.h
+│   ├── ncode.h
+│   ├── os.h
+│   ├── os_inter.h
+│   ├── os_internal.h
+│   ├── primage.h
+│   ├── R4300.h
+│   ├── ramrom.h
+│   ├── rcp.h
+│   ├── rdb.h
+│   ├── region.h
+│   ├── rmon.h
+│   ├── sched.h
+│   ├── sp.h
+│   ├── sptask.h
+│   ├── ucode.h
+│   ├── ultraerr.h
+│   ├── ultraerror.h
+│   ├── ultralog.h
+│   ├── ultratypes.h
+│   ├── ultratyp.h
+│   └── uportals.h
+├── svr4_mat.h
+├── svr4_math.h
+├── sys
+│   ├── u64drive.h
+│   ├── u64driver.h
+│   └── u64gio.h
+├── tinymon.h
+├── ultra64.h
+├── ultrahos.h
+└── ultrahost.h
+
+Depending on your SDK version there could be minor differences, but it might work anyway.
