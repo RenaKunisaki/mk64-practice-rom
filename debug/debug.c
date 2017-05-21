@@ -1,6 +1,9 @@
 #include "../include/mk64/mk64.h"
 extern "C" {
 
+void debugHook();
+static void (*replaced)();
+
 void debug_main_init() {
     //Called at boot once our code is loaded into RAM.
 
@@ -13,8 +16,20 @@ void debug_main_init() {
         *(u16*)(ypos[i]) = 205;
     }
 
+
     //enable title screen debug menu by default
     // *(u16*)0xA00B3F76 = 2;
+
+
+    //Hook our code in.
+    //0x80001E74: jal 0x80093E20 in game thread - after HUD is drawn
+    //other hooks we tried:
+    //0x80001608: jal 0x802A59A4 in game thread - before HUD is drawn
+    //0x800028A4: jal 0x80001ECC in game thread - every frame, even at title
+    //but these didn't allow us to draw on the screen during gameplay;
+    //if the dlist buffer isn't set up yet, you actually crash the game.
+    replaced = (void (*)())PATCHJAL(0x80001E74, debugHook);
+
 
     screenMode = 0; //not sure why it keeps defaulting to 2p
     numPlayers = 1;
@@ -213,7 +228,7 @@ void drawMemViewer(u16 buttons, u16 heldButtons) {
     }
 }
 
-void (*replaced)() = (void (*)()) 0x80093E20;
+
 void debugHook() { //called every frame
     replaced();
 
