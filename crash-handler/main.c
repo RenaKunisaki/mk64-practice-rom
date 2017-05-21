@@ -1,13 +1,6 @@
 #include "../include/mk64/mk64.h"
 extern "C" {
 
-extern char* strAppend(char *dest, const char *src);
-extern char* printHex(char *buf, u32 num, int nDigits);
-extern char* printNum(char *buf, u32 num);
-extern char* printNumPadded(char *buf, u32 num, int nDigits);
-extern char* printFloat(char *buf, float num, int nChars);
-extern char* printDouble(char *buf, double num, int nChars);
-
 #include "font.inc"
 
 static u16 *framebuffer;

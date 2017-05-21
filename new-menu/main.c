@@ -1,10 +1,6 @@
 #include "../include/mk64/mk64.h"
 extern "C" {
 
-extern char* strAppend(char *dest, const char *src);
-extern char* printHex(char *buf, u32 num, int nDigits);
-extern char* printNum(char *buf, u32 num);
-
 void title_main_init() {
     //Called at boot once our code is loaded into RAM.
 }

@@ -34,6 +34,7 @@ extern "C" {
 #include "video/gfx.h"
 #include "video/hud.h"
 #include "video/tkmk.h"
+#include "lib.h"
 
 } //extern "C"
 
