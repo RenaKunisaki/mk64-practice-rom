@@ -7,9 +7,24 @@ static u16 *framebuffer;
 static OSThread *faultThread;
 
 
+void crashHook(u16 *framebuf, OSThread *thread);
+
+
 void crash_main_init() {
     //Called at boot once our code is loaded into RAM.
+
+    //hook crash screen draw routine to print to USB
+    PATCHJAL(0x80004650, crashHook);
+
+    //patch crash handler to only require L press
+    //PATCH16(0x800DC6FE, 0xFFFF);
+
+    //patch crash handler to display without any button press
+    PATCH32(0x800045F0, 0x08001192); //j 0x80004648
+
+
     if(sdrv_init()) {
+        //if 64drive detected, print some info about it to USB
         char text[512] __attribute__ ((aligned (16)));
         char *buf = text;
 
@@ -31,12 +46,6 @@ void crash_main_init() {
         buf = strAppend(buf, "MB\r\n");
         sdrv_dprint(text);
     }
-}
-
-
-void* crash_titleHook(void *buf, int x1, int y1, int x2, int y2,
-uint32_t r, uint32_t g, uint32_t b, uint32_t a) {
-    //(*(u32*)0xDEADBEEF) = 0xFFFFFFFF; //crash the game to test crash handler
 }
 
 
