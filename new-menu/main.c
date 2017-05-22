@@ -217,7 +217,7 @@ static void doButtons() {
     if(buttons & Z_TRIG) {
         //(*(u32*)0xDEADBEEF) = 0xFFFFFFFF; //crash the game to test crash handler
         //asm volatile("syscall"); //for nemu
-        debugMenuCursorPos = 2; //show the original debug menu for testing
+        //debugMenuCursorPos = 2; //show the original debug menu for testing
     }
     if(buttons & L_JPAD) {
         if(--options[optSelected].value < options[optSelected].min)
