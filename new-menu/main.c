@@ -1,3 +1,7 @@
+/* This patch adds a new menu at the title screen, from which you can quickly
+ * set up the game parameters and start playing. It's similar to the existing
+ * debug menu, but looks nicer and provides more features.
+ */
 #include "../include/mk64/mk64.h"
 extern "C" {
 

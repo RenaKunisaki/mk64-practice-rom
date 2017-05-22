@@ -1,3 +1,6 @@
+/* This patch is part of the framework for other patches. It provides
+ * several useful functions for new code to use.
+ */
 #include <n64.h>
 extern "C" {
 static const char *hex = "0123456789ABCDEF";

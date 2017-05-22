@@ -1,3 +1,8 @@
+/* This patch adds a new crash handler in place of the old one.
+ * If the game ever crashes it will display lots of helpful information
+ * which can be paged through with the controller.
+ * It also prints information to 64drive USB link.
+ */
 #include "../include/mk64/mk64.h"
 extern "C" {
 

@@ -1,3 +1,6 @@
+/* This patch lets you toggle debug functions during play and adds
+ * several new debug tools.
+ */
 #include "../include/mk64/mk64.h"
 extern "C" {
 

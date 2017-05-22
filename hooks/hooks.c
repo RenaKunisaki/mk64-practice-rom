@@ -1,3 +1,6 @@
+/* This patch is part of the framework for other patches. It provides
+ * methods for patching into the game code without stepping on toes.
+ */
 #include <n64.h>
 extern "C" {
 
