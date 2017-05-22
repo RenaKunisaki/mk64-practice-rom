@@ -1,6 +1,9 @@
 #!/bin/bash
 set -e
 
+echo ""
+echo "Building $1..."
+
 BUILDDIR=.build
 ROMFILE_IN=../mk64.rom
 ROMFILE_OUT=patched.rom
@@ -59,8 +62,8 @@ nm $ELF_OUT > $BUILDDIR/sym.tmp
 $TOOLS/mergesyms.py $SYMFILE_OUT $BUILDDIR/sym.tmp > $SYMFILE_OUT
 
 # apply patches and fix CRC
-$TOOLS/patch.py -vv $PATCH_ARGS $ROMFILE_OUT $ELF_OUT
-$TOOLS/crc.py -v $ROMFILE_OUT
+$TOOLS/patch.py $PATCH_ARGS $ROMFILE_OUT $ELF_OUT
+$TOOLS/crc.py $ROMFILE_OUT
 
 # update memory.ld for next patch
 make_memory_ld $($TOOLS/patch.py --get-free $ROMFILE_OUT)
