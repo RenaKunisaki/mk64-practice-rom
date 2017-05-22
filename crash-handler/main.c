@@ -267,7 +267,8 @@ static void drawFloats() { //print FPRs
     buf = strAppend(buf, "\n");
     print_fbuf(text, 0xFFFF);
 
-    buf = text;
+    //XXX fix this shit
+    /* buf = text;
     for(int i=0; i<32; i++) {
         float val = *fp;
         u16 col = RGB16(31, 31, 31);
@@ -304,7 +305,7 @@ static void drawFloats() { //print FPRs
         else buf = strAppend(buf, " ");
         print_fbuf(text, col);
         buf = text;
-    }
+    } */
 
     print_fbuf("\nI LOVE YOU 00000000", 0xFFFF); //lol OoT reference
 }
