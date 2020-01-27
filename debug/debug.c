@@ -49,7 +49,7 @@ void doButton() {
 
 void drawInputDisplay() {
     //static int xpos = 66, ypos = 32, w = 6, h = 6; //below lap counter
-    static int xpos = 24, ypos = 1, w = 6, h = 6; //above top 4
+    static int xpos = 24, ypos = 8, w = 6, h = 6; //above top 4
     static const char *names[] = {
         "A", "B", "Z", "S",
         NULL, NULL, NULL, NULL, //don't need to draw d-pad
@@ -245,7 +245,7 @@ void debugHook() { //called every frame
     if(debugMode) {
         drawInputDisplay();
         drawPlayerInfo(0);
-        drawMemViewer(buttons, heldButtons);
+        //drawMemViewer(buttons, heldButtons); //bugged
     }
 
     //if 64drive button pressed, or L+R+Z pressed, toggle debug mode
