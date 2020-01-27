@@ -60,7 +60,10 @@ SECTIONS
     } AT>RAM :text
 
     /* get these out of the way */
+    .poop : {
+        *(.reginfo)
+    } :dummy
     .junk : {
-        *(.reginfo) *(.gnu.*) *(.MIPS.*)
+        *(.gnu.*) *(.MIPS.*)
     } :dummy
 }
