@@ -100,10 +100,10 @@ static void drawTitle() {
 
     //dlistBuffer = f_8009BC9C(dlistBuffer, 0x02004E80, 0, 0, 0, 32);
     textSetColor(TEXT_TRANS1);
-    textDraw(90, 20, "Mario Kart 64", 0, 1.0f, 1.0f);
+    textDraw(90, 28, "Mario Kart 64", 0, 1.0f, 1.0f);
 
     textSetColor(TEXT_YELLOW);
-    textDraw(110, 29, "Practice ROM v1.0", 0, 0.5f, 0.5f);
+    textDraw(110, 37, "Practice ROM v1.0", 0, 0.5f, 0.5f);
 }
 
 
@@ -112,7 +112,7 @@ static void drawMenu() {
     u8 mode = 1 << options[OPT_RACE_MODE].value;
 
     //int x=30, y=48;
-    int x=30, y=60;
+    int x=30, y=68;
     for(int i=0; options[i].text; i++) {
         if(options[i].dispModes & mode) {
             textSetColor(i == optSelected ? TEXT_TRANS2 : TEXT_GREEN);
