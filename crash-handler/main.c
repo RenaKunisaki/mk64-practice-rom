@@ -307,7 +307,7 @@ static void drawFloats() { //print FPRs
         buf = text;
     } */
 
-    print_fbuf("\nI LOVE YOU 00000000", 0xFFFF); //lol OoT reference
+    print_fbuf("\nI LOVE YOU 0E1A8511", 0xFFFF); //lol OoT reference
 }
 
 
